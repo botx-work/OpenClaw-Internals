@@ -1,0 +1,89 @@
+{
+  "version.label": {
+    "message": "最新版"
+  },
+  "sidebar.tutorialSidebar.category.Installation & Setup": {
+    "message": "安装和设置"
+  },
+  "sidebar.tutorialSidebar.category.Configuration Management": {
+    "message": "核心概念"
+  },
+  "sidebar.tutorialSidebar.category.Gateway System": {
+    "message": "网关系统"
+  },
+  "sidebar.tutorialSidebar.category.Channel Integrations": {
+    "message": "通道系统"
+  },
+  "sidebar.tutorialSidebar.category.Agent System": {
+    "message": "AI代理平台"
+  },
+  "sidebar.tutorialSidebar.category.Skills & Tools": {
+    "message": "工具和技能"
+  },
+  "sidebar.tutorialSidebar.category.Plugin Development": {
+    "message": "插件系统"
+  },
+  "sidebar.tutorialSidebar.category.Mobile Applications": {
+    "message": "跨平台应用"
+  },
+  "sidebar.tutorialSidebar.category.Web Interface": {
+    "message": "Web界面"
+  },
+  "sidebar.tutorialSidebar.category.CLI Interface": {
+    "message": "CLI命令参考"
+  },
+  "sidebar.tutorialSidebar.category.API Reference": {
+    "message": "API参考"
+  },
+  "sidebar.tutorialSidebar.category.Security Framework": {
+    "message": "安全框架"
+  },
+  "sidebar.tutorialSidebar.category.Deployment & Operations": {
+    "message": "部署和运维"
+  },
+  "sidebar.tutorialSidebar.category.Advanced Topics": {
+    "message": "高级主题"
+  },
+  "sidebar.tutorialSidebar.category.Supported Channels": {
+    "message": "支持的即时通讯平台"
+  },
+  "sidebar.tutorialSidebar.category.Browser Automation": {
+    "message": "浏览器自动化"
+  },
+  "sidebar.tutorialSidebar.category.Browser Actions": {
+    "message": "浏览器操作"
+  },
+  "sidebar.tutorialSidebar.category.Communication Tools": {
+    "message": "通信工具"
+  },
+  "sidebar.tutorialSidebar.category.Message Tool": {
+    "message": "消息工具"
+  },
+  "sidebar.tutorialSidebar.category.Node Interaction": {
+    "message": "节点交互"
+  },
+  "sidebar.tutorialSidebar.category.Skill Platform": {
+    "message": "技能平台"
+  },
+  "sidebar.tutorialSidebar.category.Skill Development Guide": {
+    "message": "技能开发指南"
+  },
+  "sidebar.tutorialSidebar.category.Skills Architecture": {
+    "message": "技能架构"
+  },
+  "sidebar.tutorialSidebar.category.Cloud Platform Deployment": {
+    "message": "云平台部署"
+  },
+  "sidebar.tutorialSidebar.category.Containerization & Docker": {
+    "message": "容器化和Docker"
+  },
+  "sidebar.tutorialSidebar.category.Maintenance & Operations": {
+    "message": "维护和运维"
+  },
+  "sidebar.tutorialSidebar.category.Monitoring & Logging": {
+    "message": "监控和日志"
+  },
+  "sidebar.tutorialSidebar.category.Performance & Scaling": {
+    "message": "性能和扩展"
+  }
+}
