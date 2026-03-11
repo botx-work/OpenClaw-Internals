@@ -90,25 +90,9 @@ npm run build
 
 ## 🌍 部署
 
-### GitHub Pages（推荐）
+### Vercel（推荐）
 
-站点已配置为部署到 `https://openclaw.github.io/repowiki`。
-
-**使用 SSH：**
-```bash
-USE_SSH=true yarn deploy
-```
-
-**使用 HTTPS：**
-```bash
-GIT_USER=<你的GitHub用户名> yarn deploy
-```
-
-该命令会自动构建网站并推送到 `gh-pages` 分支。
-
-### 其他托管平台
-
-构建完成后，将 `build/` 目录部署到任意静态文件托管服务（Vercel、Netlify、Cloudflare Pages 等）。
+站点已配置为部署到 `https://openclaw-internals.botx.work/`。
 
 ## 🔄 内容更新
 

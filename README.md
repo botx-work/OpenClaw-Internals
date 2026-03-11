@@ -95,25 +95,9 @@ Static output is written to `build/`.
 
 ## 🌍 Deployment
 
-### GitHub Pages (Recommended)
+### Vercel (Recommended)
 
-The site is configured to deploy to `https://openclaw.github.io/repowiki`.
-
-**Using SSH:**
-```bash
-USE_SSH=true yarn deploy
-```
-
-**Using HTTPS:**
-```bash
-GIT_USER=<your-github-username> yarn deploy
-```
-
-This builds the site and pushes it to the `gh-pages` branch automatically.
-
-### Manual / Other Hosts
-
-Build the site and serve the `build/` directory with any static host (Vercel, Netlify, Cloudflare Pages, etc.):
+The site is configured to deploy to `https://openclaw-internals.botx.work/`.
 
 ```bash
 npm run build
