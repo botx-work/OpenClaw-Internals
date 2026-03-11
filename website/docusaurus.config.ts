@@ -50,6 +50,7 @@ const config: Config = {
         sidebarPath: './sidebars-zh.ts',
       },
     ],
+    'docusaurus-plugin-mermaid-pan-zoom',
   ],
 
   themes: ['@docusaurus/theme-mermaid'],
