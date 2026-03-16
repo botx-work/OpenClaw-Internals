@@ -53,7 +53,18 @@ const config: Config = {
     'docusaurus-plugin-mermaid-pan-zoom',
   ],
 
-  themes: ['@docusaurus/theme-mermaid'],
+  themes: [
+    '@docusaurus/theme-mermaid',
+    [
+      require.resolve("@easyops-cn/docusaurus-search-local"),
+      {
+        hashed: true,
+        language: ["en", "zh"],
+        docsRouteBasePath: ["/", "/zh"],
+        docsDir: ["docs", "docs-zh"],
+      },
+    ],
+  ],
 
   themeConfig: {
     navbar: {
