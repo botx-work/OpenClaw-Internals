@@ -2,21 +2,31 @@
 
 <cite>
 **Referenced Files in This Document**
-- [src/config/types.secrets.ts](file://src/config/types.secrets.ts)
-- [src/config/redact-snapshot.ts](file://src/config/redact-snapshot.ts)
-- [src/config/io.ts](file://src/config/io.ts)
-- [src/config/schema.ts](file://src/config/schema.ts)
-- [src/secrets/resolve.ts](file://src/secrets/resolve.ts)
-- [src/secrets/apply.ts](file://src/secrets/apply.ts)
-- [src/secrets/shared.ts](file://src/secrets/shared.ts)
-- [src/secrets/credential-matrix.ts](file://src/secrets/credential-matrix.ts)
-- [src/gateway/protocol/schema/secrets.ts](file://src/gateway/protocol/schema/secrets.ts)
-- [src/gateway/server-methods/secrets.ts](file://src/gateway/server-methods/secrets.ts)
-- [src/security/audit.ts](file://src/security/audit.ts)
-- [src/security/audit-extra.async.ts](file://src/security/audit-extra.async.ts)
-- [src/security/audit-extra.sync.ts](file://src/security/audit-extra.sync.ts)
-- [docs/reference/secretref-credential-surface.md](file://docs/reference/secretref-credential-surface.md)
-- [docs/cli/secrets.md](file://docs/cli/secrets.md)
+- [redact-snapshot.ts](file://src/config/redact-snapshot.ts)
+- [redact-snapshot.secret-ref.ts](file://src/config/redact-snapshot.secret-ref.ts)
+- [redact-snapshot.raw.ts](file://src/config/redact-snapshot.raw.ts)
+- [schema.ts](file://src/config/schema.ts)
+- [types.secrets.ts](file://src/config/types.secrets.ts)
+- [env-substitution.ts](file://src/config/env-substitution.ts)
+- [io.ts](file://src/config/io.ts)
+- [resolve.ts](file://src/secrets/resolve.ts)
+- [audit.ts (secrets)](file://src/secrets/audit.ts)
+- [audit.ts (security)](file://src/security/audit.ts)
+- [shared.ts](file://src/secrets/shared.ts)
+- [config-io.ts](file://src/secrets/config-io.ts)
+- [audit-fs.ts](file://src/security/audit-fs.ts)
+- [scan-paths.ts](file://src/security/scan-paths.ts)
+- [dangerous-config-flags.ts](file://src/security/dangerous-config-flags.ts)
+- [windows-acl.ts](file://src/security/windows-acl.ts)
+- [config.md](file://docs/cli/config.md)
+- [secrets.md](file://docs/cli/secrets.md)
+- [security.md](file://docs/cli/security.md)
+- [configuration.md](file://docs/gateway/configuration.md)
+- [configuration-reference.md](file://docs/gateway/configuration-reference.md)
+- [configuration-examples.md](file://docs/gateway/configuration-examples.md)
+- [secrets.md (gateway)](file://docs/gateway/secrets.md)
+- [secrets-plan-contract.md](file://docs/gateway/secrets-plan-contract.md)
+- [secretref-credential-surface.md](file://docs/reference/secretref-credential-surface.md)
 </cite>
 
 ## Table of Contents
@@ -32,404 +42,367 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document provides a comprehensive, security-focused guide to configuration management in OpenClaw. It explains how secrets are modeled, resolved, stored, and audited; how sensitive configuration data is protected; and how to harden deployments, audit for risks, and respond to incidents. It covers the SecretRef system, provider-backed resolution, access control patterns, audit logging, and compliance-oriented safeguards.
+This document provides a comprehensive guide to security-focused configuration management in OpenClaw. It covers secure configuration practices, credential handling, sensitive data protection, configuration redaction, secret management, access control, encryption strategies, secure storage, transmission security, auditing, integrity verification, and compliance considerations. The goal is to help operators deploy and operate OpenClaw securely while minimizing risk from misconfiguration, credential leakage, and insecure access.
 
 ## Project Structure
-OpenClaw’s security configuration spans several subsystems:
-- Configuration schema and redaction: schema-driven hints and redaction of sensitive values
-- Secrets resolution and application: SecretRef parsing, provider resolution, and atomic scrubbing
-- Audit and hardening: filesystem, gateway, and plugin security checks
-- Gateway RPC: runtime reload and resolution APIs for secrets
+OpenClaw’s security configuration spans several modules:
+- Configuration parsing, validation, and redaction
+- Secret reference resolution and storage scanning
+- Security audit and filesystem permission inspection
+- Gateway configuration and secrets integration
 
 ```mermaid
 graph TB
-subgraph "Configuration Layer"
-A["Config Schema<br/>and UI Hints"]
-B["Redaction Engine<br/>(structured + raw)"]
-C["Config IO<br/>(read/write, audit logs)"]
+subgraph "Configuration"
+A["io.ts<br/>Read/Write/Patch Config"]
+B["schema.ts<br/>Build Schema + UI Hints"]
+C["env-substitution.ts<br/>${VAR} Substitution"]
+D["redact-snapshot.ts<br/>Sensitive Redaction"]
 end
-subgraph "Secrets Layer"
-D["SecretRef Types"]
-E["Resolution Engine<br/>(env/file/exec)"]
-F["Apply Engine<br/>(atomic scrubbing)"]
+subgraph "Secrets"
+E["resolve.ts<br/>SecretRef Resolution"]
+F["audit.ts (secrets)<br/>Secrets Audit"]
+G["shared.ts<br/>Secure IO Utilities"]
+H["config-io.ts<br/>Secrets Config IO"]
 end
-subgraph "Audit Layer"
-G["Security Audit<br/>(findings)"]
-H["Extra Checks<br/>(filesystem, plugins)"]
+subgraph "Security"
+I["audit.ts (security)<br/>Security Audit"]
+J["audit-fs.ts<br/>Filesystem Permissions"]
+K["dangerous-config-flags.ts<br/>Dangerous Flags"]
+L["windows-acl.ts<br/>ACL Checks"]
 end
-subgraph "Gateway"
-I["RPC: secrets.reload / secrets.resolve"]
-end
-A --> B --> C
-D --> E --> F
-C --> I
-E --> G
-H --> G
+A --> B
+A --> C
+A --> D
+A --> E
+E --> F
+F --> I
+I --> J
+I --> K
+I --> L
 ```
 
 **Diagram sources**
-- [src/config/schema.ts](file://src/config/schema.ts#L1-L200)
-- [src/config/redact-snapshot.ts](file://src/config/redact-snapshot.ts#L1-L402)
-- [src/config/io.ts](file://src/config/io.ts#L507-L554)
-- [src/config/types.secrets.ts](file://src/config/types.secrets.ts#L1-L225)
-- [src/secrets/resolve.ts](file://src/secrets/resolve.ts#L1-L200)
-- [src/secrets/apply.ts](file://src/secrets/apply.ts#L1-L120)
-- [src/security/audit.ts](file://src/security/audit.ts#L1-L120)
-- [src/security/audit-extra.async.ts](file://src/security/audit-extra.async.ts#L1095-L1127)
-- [src/gateway/protocol/schema/secrets.ts](file://src/gateway/protocol/schema/secrets.ts#L1-L35)
-- [src/gateway/server-methods/secrets.ts](file://src/gateway/server-methods/secrets.ts#L26-L68)
+- [io.ts:725-800](file://src/config/io.ts#L725-L800)
+- [schema.ts:429-484](file://src/config/schema.ts#L429-L484)
+- [env-substitution.ts:197-204](file://src/config/env-substitution.ts#L197-L204)
+- [redact-snapshot.ts:378-431](file://src/config/redact-snapshot.ts#L378-L431)
+- [resolve.ts:1-120](file://src/secrets/resolve.ts#L1-L120)
+- [audit.ts (secrets):601-683](file://src/secrets/audit.ts#L601-L683)
+- [audit.ts (security):1-120](file://src/security/audit.ts#L1-L120)
+- [audit-fs.ts:1-120](file://src/security/audit-fs.ts#L1-L120)
+- [dangerous-config-flags.ts:1-120](file://src/security/dangerous-config-flags.ts#L1-L120)
+- [windows-acl.ts:1-120](file://src/security/windows-acl.ts#L1-L120)
 
 **Section sources**
-- [src/config/schema.ts](file://src/config/schema.ts#L1-L200)
-- [src/config/redact-snapshot.ts](file://src/config/redact-snapshot.ts#L1-L402)
-- [src/config/io.ts](file://src/config/io.ts#L507-L554)
-- [src/config/types.secrets.ts](file://src/config/types.secrets.ts#L1-L225)
-- [src/secrets/resolve.ts](file://src/secrets/resolve.ts#L1-L200)
-- [src/secrets/apply.ts](file://src/secrets/apply.ts#L1-L120)
-- [src/security/audit.ts](file://src/security/audit.ts#L1-L120)
-- [src/security/audit-extra.async.ts](file://src/security/audit-extra.async.ts#L1095-L1127)
-- [src/gateway/protocol/schema/secrets.ts](file://src/gateway/protocol/schema/secrets.ts#L1-L35)
-- [src/gateway/server-methods/secrets.ts](file://src/gateway/server-methods/secrets.ts#L26-L68)
+- [io.ts:725-800](file://src/config/io.ts#L725-L800)
+- [schema.ts:429-484](file://src/config/schema.ts#L429-L484)
+- [env-substitution.ts:197-204](file://src/config/env-substitution.ts#L197-L204)
+- [redact-snapshot.ts:378-431](file://src/config/redact-snapshot.ts#L378-L431)
+- [resolve.ts:1-120](file://src/secrets/resolve.ts#L1-L120)
+- [audit.ts (secrets):601-683](file://src/secrets/audit.ts#L601-L683)
+- [audit.ts (security):1-120](file://src/security/audit.ts#L1-L120)
+- [audit-fs.ts:1-120](file://src/security/audit-fs.ts#L1-L120)
+- [dangerous-config-flags.ts:1-120](file://src/security/dangerous-config-flags.ts#L1-L120)
+- [windows-acl.ts:1-120](file://src/security/windows-acl.ts#L1-L120)
 
 ## Core Components
-- SecretRef model and providers: SecretRef types, provider configs (env/file/exec), and defaults
-- Resolution engine: concurrency limits, timeouts, path security checks, and provider-specific parsing
-- Apply engine: atomic writes, scrubbing of plaintext residues, and best-effort rollback
-- Redaction: structured and raw redaction of sensitive values for UI and logs
-- Audit: filesystem, gateway, and plugin hardening checks; audit logs for write events
-- Gateway RPC: secrets.reload and secrets.resolve for runtime snapshot updates
+- Configuration I/O and validation: Reads, parses, validates, normalizes, and writes configuration with include support, environment substitution, and runtime overrides.
+- Schema and UI hints: Builds a JSON schema augmented with UI hints and sensitive-path tagging for redaction.
+- Environment variable substitution: Safely resolves ${VAR} placeholders with strict uppercase naming rules and optional missing-var warnings.
+- Redaction pipeline: Removes sensitive values from snapshots and raw config text, preserving structure integrity and restoring values during write operations.
+- Secret reference resolution: Securely resolves SecretRef objects from env, file, or exec providers with concurrency limits, timeouts, and path security checks.
+- Secrets audit: Scans config, auth stores, and models.json for plaintext secrets, unresolved refs, and legacy residues.
+- Security audit: Reviews gateway exposure, control UI origins, trusted proxies, dangerous flags, filesystem permissions, and browser control auth.
+- Secure IO utilities: Atomic writes, secure chmod, and temporary file handling to prevent leakage.
 
 **Section sources**
-- [src/config/types.secrets.ts](file://src/config/types.secrets.ts#L1-L225)
-- [src/secrets/resolve.ts](file://src/secrets/resolve.ts#L165-L274)
-- [src/secrets/apply.ts](file://src/secrets/apply.ts#L179-L257)
-- [src/config/redact-snapshot.ts](file://src/config/redact-snapshot.ts#L353-L402)
-- [src/config/io.ts](file://src/config/io.ts#L540-L554)
-- [src/gateway/protocol/schema/secrets.ts](file://src/gateway/protocol/schema/secrets.ts#L1-L35)
+- [io.ts:725-800](file://src/config/io.ts#L725-L800)
+- [schema.ts:429-484](file://src/config/schema.ts#L429-L484)
+- [env-substitution.ts:197-204](file://src/config/env-substitution.ts#L197-L204)
+- [redact-snapshot.ts:378-431](file://src/config/redact-snapshot.ts#L378-L431)
+- [resolve.ts:1-120](file://src/secrets/resolve.ts#L1-L120)
+- [audit.ts (secrets):601-683](file://src/secrets/audit.ts#L601-L683)
+- [audit.ts (security):1-120](file://src/security/audit.ts#L1-L120)
+- [shared.ts:45-64](file://src/secrets/shared.ts#L45-L64)
 
 ## Architecture Overview
-The secrets lifecycle integrates configuration, resolution, auditing, and runtime updates:
+The security configuration architecture integrates configuration lifecycle with secret management and security auditing.
 
 ```mermaid
 sequenceDiagram
-participant Operator as "Operator"
-participant CLI as "CLI (secrets)"
-participant Gateway as "Gateway RPC"
-participant Resolver as "Secret Resolver"
-participant Store as "Config/Auth Stores"
-Operator->>CLI : "secrets configure / apply"
-CLI->>Store : "Read snapshot, build plan"
-CLI->>Resolver : "Resolve refs (env/file/exec)"
-Resolver-->>CLI : "Resolved values"
-CLI->>Store : "Atomic write + scrub plaintext"
-Operator->>CLI : "secrets reload"
-CLI->>Gateway : "secrets.reload"
-Gateway->>Resolver : "Re-resolve refs"
-Resolver-->>Gateway : "Resolved values"
-Gateway-->>CLI : "Swap runtime snapshot"
+participant CLI as "CLI/Operator"
+participant CFG as "Config I/O (io.ts)"
+participant SCH as "Schema/UI Hints (schema.ts)"
+participant ENV as "Env Substitution (env-substitution.ts)"
+participant RED as "Redaction (redact-snapshot.ts)"
+participant SEC as "Secrets Resolver (resolve.ts)"
+participant AUDSEC as "Secrets Audit (audit.ts)"
+participant AUDSECUR as "Security Audit (audit.ts)"
+CLI->>CFG : Load config
+CFG->>SCH : Build schema + hints
+CFG->>ENV : Resolve ${VAR}
+CFG-->>CLI : Validated config
+CLI->>RED : Redact sensitive fields
+RED-->>CLI : Safe snapshot
+CLI->>SEC : Resolve SecretRef values
+SEC-->>CLI : Resolved values
+CLI->>AUDSEC : Run secrets audit
+AUDSEC-->>CLI : Report
+CLI->>AUDSECUR : Run security audit
+AUDSECUR-->>CLI : Report
 ```
 
 **Diagram sources**
-- [docs/cli/secrets.md](file://docs/cli/secrets.md#L21-L30)
-- [src/gateway/server-methods/secrets.ts](file://src/gateway/server-methods/secrets.ts#L26-L68)
-- [src/secrets/resolve.ts](file://src/secrets/resolve.ts#L784-L800)
-- [src/secrets/apply.ts](file://src/secrets/apply.ts#L700-L778)
+- [io.ts:725-800](file://src/config/io.ts#L725-L800)
+- [schema.ts:429-484](file://src/config/schema.ts#L429-L484)
+- [env-substitution.ts:197-204](file://src/config/env-substitution.ts#L197-L204)
+- [redact-snapshot.ts:378-431](file://src/config/redact-snapshot.ts#L378-L431)
+- [resolve.ts:1-120](file://src/secrets/resolve.ts#L1-L120)
+- [audit.ts (secrets):601-683](file://src/secrets/audit.ts#L601-L683)
+- [audit.ts (security):1-120](file://src/security/audit.ts#L1-L120)
 
 ## Detailed Component Analysis
 
-### SecretRef Model and Providers
-- SecretRef supports three sources: env, file, and exec. Each ref carries a provider alias and an id.
-- Provider configs define allowlists, file modes, timeouts, and environment propagation.
-- Defaults for provider aliases are supported for concise configuration.
-
-```mermaid
-classDiagram
-class SecretRef {
-+string source
-+string provider
-+string id
-}
-class EnvSecretProviderConfig {
-+string source = "env"
-+string[] allowlist
-}
-class FileSecretProviderConfig {
-+string source = "file"
-+string path
-+string mode
-+number timeoutMs
-+number maxBytes
-}
-class ExecSecretProviderConfig {
-+string source = "exec"
-+string command
-+string[] args
-+number timeoutMs
-+number noOutputTimeoutMs
-+number maxOutputBytes
-+boolean jsonOnly
-+Record env
-+string[] passEnv
-+string[] trustedDirs
-+boolean allowInsecurePath
-+boolean allowSymlinkCommand
-}
-SecretRef --> EnvSecretProviderConfig : "resolved by"
-SecretRef --> FileSecretProviderConfig : "resolved by"
-SecretRef --> ExecSecretProviderConfig : "resolved by"
-```
-
-**Diagram sources**
-- [src/config/types.secrets.ts](file://src/config/types.secrets.ts#L10-L225)
-
-**Section sources**
-- [src/config/types.secrets.ts](file://src/config/types.secrets.ts#L1-L225)
-
-### Resolution Engine: Security Controls and Limits
-- Concurrency and batch limits prevent resource exhaustion during provider resolution.
-- Path security checks enforce absolute paths, disallow symlinks (with exceptions), and validate ownership and permissions.
-- File provider enforces size limits and single-value mode when required.
-- Exec provider enforces protocolVersion, validates JSON output, and applies timeouts and output limits.
-- Environment provider enforces allowlists and rejects missing or empty values.
+### Configuration Redaction Pipeline
+The redaction pipeline ensures sensitive values are hidden from UI responses and logs while preserving structural integrity. It supports:
+- Structured redaction using UI hints and sensitive-path detection
+- Raw text redaction by collecting sensitive strings and replacing them in the JSON5 source
+- Restoration of redacted values during write operations to avoid credential loss
 
 ```mermaid
 flowchart TD
-Start(["Resolve SecretRef"]) --> CheckProvider["Resolve provider config"]
-CheckProvider --> ProviderType{"Provider type?"}
-ProviderType --> |env| Env["Check allowlist and env value"]
-ProviderType --> |file| File["Assert secure path and read payload"]
-ProviderType --> |exec| Exec["Spawn process with timeouts and limits"]
-Env --> Done(["Resolved value"])
-File --> Done
-Exec --> Done
+Start(["Start"]) --> CheckValid["Check snapshot validity"]
+CheckValid --> |Invalid| ReturnEmpty["Return empty/redacted snapshot"]
+CheckValid --> |Valid| RedactObj["Redact structured config"]
+RedactObj --> RedactParsed["Redact parsed config"]
+RedactParsed --> CollectVals["Collect sensitive values"]
+CollectVals --> RedactRaw["Redact raw JSON5 text"]
+RedactRaw --> Fallback{"Fallback to structured?"}
+Fallback --> |Yes| UseParsed["Use parsed JSON5"]
+Fallback --> |No| KeepRaw["Keep redacted raw"]
+UseParsed --> RedactResolved["Redact resolved config"]
+KeepRaw --> RedactResolved
+RedactResolved --> End(["End"])
 ```
 
 **Diagram sources**
-- [src/secrets/resolve.ts](file://src/secrets/resolve.ts#L165-L274)
-- [src/secrets/resolve.ts](file://src/secrets/resolve.ts#L276-L426)
-- [src/secrets/resolve.ts](file://src/secrets/resolve.ts#L650-L782)
+- [redact-snapshot.ts:382-431](file://src/config/redact-snapshot.ts#L382-L431)
+- [redact-snapshot.raw.ts:17-32](file://src/config/redact-snapshot.raw.ts#L17-L32)
 
 **Section sources**
-- [src/secrets/resolve.ts](file://src/secrets/resolve.ts#L165-L274)
-- [src/secrets/resolve.ts](file://src/secrets/resolve.ts#L276-L426)
-- [src/secrets/resolve.ts](file://src/secrets/resolve.ts#L650-L782)
+- [redact-snapshot.ts:378-431](file://src/config/redact-snapshot.ts#L378-L431)
+- [redact-snapshot.secret-ref.ts:1-21](file://src/config/redact-snapshot.secret-ref.ts#L1-L21)
+- [redact-snapshot.raw.ts:1-33](file://src/config/redact-snapshot.raw.ts#L1-L33)
 
-### Apply Engine: Atomic Writes and Scrubbing
-- Projected state builds a next configuration and identifies changed files.
-- Scrubs plaintext values from:
-  - Auth-profile stores (removes api_key/token fields and references)
-  - Legacy auth.json stores
-  - Known secret keys in ~/.openclaw/.env
-- Validates projected state by resolving refs and preparing a runtime snapshot.
-- Atomic writes use temporary files and rename to minimize partial-state exposure.
-
-```mermaid
-flowchart TD
-PStart(["Project plan state"]) --> Mutate["Apply provider/target mutations"]
-Mutate --> Scrub["Scrub plaintext from stores/env"]
-Scrub --> Validate["Validate projected state"]
-Validate --> Snapshot["Prepare runtime snapshot"]
-Snapshot --> Write["Atomic writes + best-effort rollback on error"]
-Write --> PEnd(["Done"])
-```
-
-**Diagram sources**
-- [src/secrets/apply.ts](file://src/secrets/apply.ts#L179-L257)
-- [src/secrets/apply.ts](file://src/secrets/apply.ts#L341-L397)
-- [src/secrets/apply.ts](file://src/secrets/apply.ts#L627-L668)
-- [src/secrets/apply.ts](file://src/secrets/apply.ts#L700-L778)
-
-**Section sources**
-- [src/secrets/apply.ts](file://src/secrets/apply.ts#L179-L257)
-- [src/secrets/apply.ts](file://src/secrets/apply.ts#L341-L397)
-- [src/secrets/apply.ts](file://src/secrets/apply.ts#L627-L668)
-- [src/secrets/apply.ts](file://src/secrets/apply.ts#L700-L778)
-
-### Redaction and Sensitive Data Handling
-- Structured redaction uses UI hints to mark sensitive paths and replaces values with a sentinel.
-- Raw redaction collects sensitive strings and replaces them in JSON5 source text.
-- Restore mechanism replaces sentinels with original values during write operations to preserve user intent.
-
-```mermaid
-flowchart TD
-RS(["Redact Config"]) --> Hints{"UI hints available?"}
-Hints --> |Yes| Lookup["Build lookup from hints"]
-Hints --> |No| Guess["Regex-based sensitive path detection"]
-Lookup --> Structured["Structured redaction"]
-Guess --> Structured
-Structured --> Raw["Raw text redaction (longest-first)"]
-Raw --> Resolved["Redact resolved config"]
-Resolved --> RSOut(["Redacted snapshot"])
-```
-
-**Diagram sources**
-- [src/config/redact-snapshot.ts](file://src/config/redact-snapshot.ts#L116-L125)
-- [src/config/redact-snapshot.ts](file://src/config/redact-snapshot.ts#L312-L319)
-- [src/config/redact-snapshot.ts](file://src/config/redact-snapshot.ts#L353-L402)
-
-**Section sources**
-- [src/config/redact-snapshot.ts](file://src/config/redact-snapshot.ts#L116-L125)
-- [src/config/redact-snapshot.ts](file://src/config/redact-snapshot.ts#L312-L319)
-- [src/config/redact-snapshot.ts](file://src/config/redact-snapshot.ts#L353-L402)
-
-### Audit Logging and Hardening
-- Config write audit logs capture metadata, suspicious changes, and process context.
-- Security audit scans filesystem permissions, gateway exposure, control UI origins, and plugin/code safety.
-- Extra checks include state directory permissions, log file permissions, and include file permissions.
+### Secret Reference Resolution and Storage
+Secrets are referenced via SecretRef objects and resolved from providers:
+- env: allowlisted environment variables
+- file: single-value or JSON payloads with path security checks
+- exec: protocol-based external resolver with timeouts and output limits
 
 ```mermaid
 sequenceDiagram
-participant Config as "Config Writer"
+participant CFG as "Config"
+participant RES as "resolve.ts"
 participant FS as "Filesystem"
-participant Logger as "Audit Logger"
-participant Audit as "Security Audit"
-Config->>FS : "Write config"
-Config->>Logger : "Append audit record"
-Audit->>FS : "Inspect permissions"
-Audit-->>Audit : "Collect findings"
+participant PROC as "External Process"
+CFG->>RES : Resolve SecretRef[]
+RES->>RES : Normalize limits (concurrency, batch, bytes)
+RES->>RES : Select provider by source
+alt env
+RES->>RES : Check allowlist and non-empty
+else file
+RES->>FS : Assert secure path + read payload
+else exec
+RES->>PROC : Spawn with timeout/no-output timeout
+PROC-->>RES : JSON response with values/errors
+end
+RES-->>CFG : Resolved values
 ```
 
 **Diagram sources**
-- [src/config/io.ts](file://src/config/io.ts#L540-L554)
-- [src/security/audit.ts](file://src/security/audit.ts#L208-L337)
-- [src/security/audit-extra.async.ts](file://src/security/audit-extra.async.ts#L1095-L1127)
+- [resolve.ts:167-180](file://src/secrets/resolve.ts#L167-L180)
+- [resolve.ts:278-343](file://src/secrets/resolve.ts#L278-L343)
+- [resolve.ts:378-428](file://src/secrets/resolve.ts#L378-L428)
+- [resolve.ts:652-784](file://src/secrets/resolve.ts#L652-L784)
 
 **Section sources**
-- [src/config/io.ts](file://src/config/io.ts#L540-L554)
-- [src/security/audit.ts](file://src/security/audit.ts#L208-L337)
-- [src/security/audit-extra.async.ts](file://src/security/audit-extra.async.ts#L1095-L1127)
+- [types.secrets.ts:1-225](file://src/config/types.secrets.ts#L1-L225)
+- [resolve.ts:167-180](file://src/secrets/resolve.ts#L167-L180)
+- [resolve.ts:278-343](file://src/secrets/resolve.ts#L278-L343)
+- [resolve.ts:378-428](file://src/secrets/resolve.ts#L378-L428)
+- [resolve.ts:652-784](file://src/secrets/resolve.ts#L652-L784)
 
-### Gateway RPC: Runtime Reload and Resolution
-- secrets.reload re-resolves refs and swaps the runtime snapshot only on full success.
-- secrets.resolve validates parameters and returns assignments and diagnostics.
+### Secrets Audit
+The secrets audit scans for plaintext secrets, unresolved references, provider shadowing, and legacy residues across config, auth profiles, and models.json.
 
 ```mermaid
-sequenceDiagram
-participant Client as "Client"
-participant RPC as "Gateway RPC"
-participant Resolver as "Secret Resolver"
-Client->>RPC : "secrets.reload"
-RPC->>Resolver : "Resolve all refs"
-Resolver-->>RPC : "Resolved values"
-RPC-->>Client : "OK (swap snapshot)"
-Client->>RPC : "secrets.resolve {commandName, targetIds}"
-RPC-->>Client : "{assignments, diagnostics}"
+flowchart TD
+Start(["Start Secrets Audit"]) --> ReadCfg["Read config snapshot"]
+ReadCfg --> ScanCfg["Scan config targets"]
+ScanCfg --> ScanAuth["Scan auth profiles"]
+ScanAuth --> ScanModels["Scan models.json"]
+ScanModels --> ResolveRefs["Resolve refs (batch + per-ref)"]
+ResolveRefs --> Findings["Aggregate findings"]
+Findings --> Shadowing["Detect provider shadowing"]
+Shadowing --> Report["Generate report"]
+Report --> End(["End"])
 ```
 
 **Diagram sources**
-- [src/gateway/server-methods/secrets.ts](file://src/gateway/server-methods/secrets.ts#L26-L68)
-- [src/gateway/protocol/schema/secrets.ts](file://src/gateway/protocol/schema/secrets.ts#L6-L33)
+- [audit.ts (secrets):601-683](file://src/secrets/audit.ts#L601-L683)
 
 **Section sources**
-- [src/gateway/server-methods/secrets.ts](file://src/gateway/server-methods/secrets.ts#L26-L68)
-- [src/gateway/protocol/schema/secrets.ts](file://src/gateway/protocol/schema/secrets.ts#L6-L33)
+- [audit.ts (secrets):601-683](file://src/secrets/audit.ts#L601-L683)
 
-### Secure Configuration Deployment and Rotation
-- Use the operator loop: audit → configure → dry-run apply → apply → audit → reload.
-- Providers: configure env/file/exec providers with allowlists, trustedDirs, and timeouts.
-- Rotation: update SecretRef targets; run apply with scrubbing; reload to activate.
+### Security Audit
+The security audit evaluates gateway exposure, control UI origins, trusted proxies, dangerous flags, filesystem permissions, and browser control auth.
 
-**Section sources**
-- [docs/cli/secrets.md](file://docs/cli/secrets.md#L21-L30)
-- [docs/cli/secrets.md](file://docs/cli/secrets.md#L93-L131)
-- [docs/cli/secrets.md](file://docs/cli/secrets.md#L138-L158)
+```mermaid
+flowchart TD
+Start(["Start Security Audit"]) --> FS["Inspect filesystem permissions"]
+FS --> GW["Evaluate gateway bind/auth/origins"]
+GW --> TRUST["Check trusted proxies and headers"]
+TRUST --> FLAGS["Detect dangerous flags"]
+FLAGS --> BROWSER["Check browser control auth"]
+BROWSER --> Report["Summarize findings"]
+Report --> End(["End"])
+```
 
-### Incident Response Procedures
-- If unresolved refs are detected, prioritize fixing provider configuration or environment variables.
-- If plaintext residues remain, re-run configure and apply with scrubbing enabled.
-- For permission issues, adjust filesystem permissions and re-run audit.
-- For gateway exposure, tighten bind/auth and control UI allowed origins.
-
-**Section sources**
-- [docs/cli/secrets.md](file://docs/cli/secrets.md#L78-L82)
-- [src/security/audit.ts](file://src/security/audit.ts#L428-L436)
-- [src/security/audit.ts](file://src/security/audit.ts#L463-L480)
-
-### Security Validation, Assessment, and Penetration Testing
-- Use audit --check to gate PRs and CI pipelines.
-- Validate provider setups with exec/file path security and env allowlists.
-- PenTest: enumerate gateway exposure, control UI origins, and plugin/code safety; verify redaction in UI and logs.
+**Diagram sources**
+- [audit.ts (security):221-350](file://src/security/audit.ts#L221-L350)
+- [audit.ts (security):352-701](file://src/security/audit.ts#L352-L701)
+- [audit.ts (security):732-800](file://src/security/audit.ts#L732-L800)
 
 **Section sources**
-- [docs/cli/secrets.md](file://docs/cli/secrets.md#L32-L36)
-- [src/security/audit.ts](file://src/security/audit.ts#L1-L120)
-- [src/security/audit-extra.async.ts](file://src/security/audit-extra.async.ts#L1095-L1127)
+- [audit.ts (security):221-350](file://src/security/audit.ts#L221-L350)
+- [audit.ts (security):352-701](file://src/security/audit.ts#L352-L701)
+- [audit.ts (security):732-800](file://src/security/audit.ts#L732-L800)
+
+### Secure Storage and Transmission
+- Secure file creation and atomic writes: Ensures minimal exposure windows and correct permissions.
+- Path security: Enforces absolute paths, disallows symlinks (with opt-in), and verifies ownership and permissions.
+- Transmission security: Gateways and control UI should be protected by tokens, trusted proxies, or Tailscale serve/funnel modes with strict origin policies.
+
+**Section sources**
+- [shared.ts:45-64](file://src/secrets/shared.ts#L45-L64)
+- [resolve.ts:208-276](file://src/secrets/resolve.ts#L208-L276)
+- [audit-fs.ts:1-120](file://src/security/audit-fs.ts#L1-L120)
+- [audit.ts (security):352-701](file://src/security/audit.ts#L352-L701)
 
 ## Dependency Analysis
-- SecretRef types depend on provider configs; resolution depends on filesystem and environment; apply depends on atomic file writes and snapshot preparation.
-- Audit depends on filesystem inspection and gateway probing; redaction depends on schema hints and regex heuristics.
+- Configuration I/O depends on schema generation, environment substitution, and includes resolution.
+- Redaction depends on schema hints and sensitive-path detection.
+- Secret resolution depends on filesystem permissions and provider contracts.
+- Security audit depends on filesystem inspection, dangerous flags, and gateway configuration.
 
 ```mermaid
 graph LR
-Types["types.secrets.ts"] --> Resolve["resolve.ts"]
-Types --> Apply["apply.ts"]
-Resolve --> Shared["shared.ts"]
-Apply --> Shared
-Apply --> Resolve
-Apply --> IO["config.io.ts"]
-Redact["redact-snapshot.ts"] --> IO
-Audit["security/audit.ts"] --> Extra["audit-extra.async.ts"]
-Audit --> ExtraSync["audit-extra.sync.ts"]
-IO --> Audit
-Resolve --> Audit
+io_ts["io.ts"] --> schema_ts["schema.ts"]
+io_ts --> env_sub["env-substitution.ts"]
+io_ts --> redact["redact-snapshot.ts"]
+redact --> redact_raw["redact-snapshot.raw.ts"]
+redact --> redact_ref["redact-snapshot.secret-ref.ts"]
+io_ts --> resolve_ts["resolve.ts"]
+resolve_ts --> audit_fs["audit-fs.ts"]
+io_ts --> audit_sec["audit.ts (security)"]
+audit_sec --> dangerous_flags["dangerous-config-flags.ts"]
+audit_sec --> windows_acl["windows-acl.ts"]
 ```
 
 **Diagram sources**
-- [src/config/types.secrets.ts](file://src/config/types.secrets.ts#L1-L225)
-- [src/secrets/resolve.ts](file://src/secrets/resolve.ts#L1-L120)
-- [src/secrets/apply.ts](file://src/secrets/apply.ts#L1-L120)
-- [src/secrets/shared.ts](file://src/secrets/shared.ts#L1-L86)
-- [src/config/io.ts](file://src/config/io.ts#L507-L554)
-- [src/config/redact-snapshot.ts](file://src/config/redact-snapshot.ts#L1-L120)
-- [src/security/audit.ts](file://src/security/audit.ts#L1-L120)
-- [src/security/audit-extra.async.ts](file://src/security/audit-extra.async.ts#L1095-L1127)
-- [src/security/audit-extra.sync.ts](file://src/security/audit-extra.sync.ts#L1-L41)
+- [io.ts:725-800](file://src/config/io.ts#L725-L800)
+- [schema.ts:429-484](file://src/config/schema.ts#L429-L484)
+- [env-substitution.ts:197-204](file://src/config/env-substitution.ts#L197-L204)
+- [redact-snapshot.ts:378-431](file://src/config/redact-snapshot.ts#L378-L431)
+- [redact-snapshot.raw.ts:1-33](file://src/config/redact-snapshot.raw.ts#L1-L33)
+- [redact-snapshot.secret-ref.ts:1-21](file://src/config/redact-snapshot.secret-ref.ts#L1-L21)
+- [resolve.ts:1-120](file://src/secrets/resolve.ts#L1-L120)
+- [audit-fs.ts:1-120](file://src/security/audit-fs.ts#L1-L120)
+- [audit.ts (security):1-120](file://src/security/audit.ts#L1-L120)
+- [dangerous-config-flags.ts:1-120](file://src/security/dangerous-config-flags.ts#L1-L120)
+- [windows-acl.ts:1-120](file://src/security/windows-acl.ts#L1-L120)
 
 **Section sources**
-- [src/config/types.secrets.ts](file://src/config/types.secrets.ts#L1-L225)
-- [src/secrets/resolve.ts](file://src/secrets/resolve.ts#L1-L120)
-- [src/secrets/apply.ts](file://src/secrets/apply.ts#L1-L120)
-- [src/secrets/shared.ts](file://src/secrets/shared.ts#L1-L86)
-- [src/config/io.ts](file://src/config/io.ts#L507-L554)
-- [src/config/redact-snapshot.ts](file://src/config/redact-snapshot.ts#L1-L120)
-- [src/security/audit.ts](file://src/security/audit.ts#L1-L120)
-- [src/security/audit-extra.async.ts](file://src/security/audit-extra.async.ts#L1095-L1127)
-- [src/security/audit-extra.sync.ts](file://src/security/audit-extra.sync.ts#L1-L41)
+- [io.ts:725-800](file://src/config/io.ts#L725-L800)
+- [schema.ts:429-484](file://src/config/schema.ts#L429-L484)
+- [env-substitution.ts:197-204](file://src/config/env-substitution.ts#L197-L204)
+- [redact-snapshot.ts:378-431](file://src/config/redact-snapshot.ts#L378-L431)
+- [redact-snapshot.raw.ts:1-33](file://src/config/redact-snapshot.raw.ts#L1-L33)
+- [redact-snapshot.secret-ref.ts:1-21](file://src/config/redact-snapshot.secret-ref.ts#L1-L21)
+- [resolve.ts:1-120](file://src/secrets/resolve.ts#L1-L120)
+- [audit-fs.ts:1-120](file://src/security/audit-fs.ts#L1-L120)
+- [audit.ts (security):1-120](file://src/security/audit.ts#L1-L120)
+- [dangerous-config-flags.ts:1-120](file://src/security/dangerous-config-flags.ts#L1-L120)
+- [windows-acl.ts:1-120](file://src/security/windows-acl.ts#L1-L120)
 
 ## Performance Considerations
-- Resolution limits (concurrency, refs per provider, batch bytes) protect against resource exhaustion.
-- Atomic writes minimize I/O overhead and reduce partial-state risk.
-- Redaction prioritizes longest-first replacement to avoid partial matches and reduces log sizes.
+- Concurrency limits for secret resolution prevent resource exhaustion.
+- Batch sizes and timeouts bound exec and file providers to mitigate DoS.
+- Schema caching reduces repeated computation for plugin/channel additions.
+- Atomic writes minimize disk contention and reduce partial writes.
 
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
-- Permission errors on file/exec providers: verify absolute paths, ownership, and permissions; adjust trustedDirs and allowlist flags.
-- Empty or missing env values: ensure allowlist entries and environment hydration.
-- Exec provider failures: validate protocolVersion, JSON output, and timeouts.
-- Audit findings: address filesystem permissions, gateway bind/auth, and control UI origins.
+Common issues and mitigations:
+- Missing environment variables in ${VAR} substitution: Configure required env vars or use onMissing callback to warn instead of fail.
+- Unresolved SecretRef: Verify provider configuration, allowlists, and path security; run secrets audit to identify failures.
+- Plaintext secrets detected: Migrate to SecretRef; review provider configurations and file permissions.
+- Exposed gateway or control UI: Enforce strict allowed origins, disable wildcard origins, and use loopback-only or trusted proxy modes.
+- Dangerous flags enabled: Disable flags when not debugging; restrict exposure to trusted networks.
 
 **Section sources**
-- [src/secrets/resolve.ts](file://src/secrets/resolve.ts#L206-L274)
-- [src/secrets/resolve.ts](file://src/secrets/resolve.ts#L650-L782)
-- [src/security/audit.ts](file://src/security/audit.ts#L208-L337)
+- [env-substitution.ts:29-37](file://src/config/env-substitution.ts#L29-L37)
+- [env-substitution.ts:197-204](file://src/config/env-substitution.ts#L197-L204)
+- [resolve.ts:167-180](file://src/secrets/resolve.ts#L167-L180)
+- [audit.ts (secrets):601-683](file://src/secrets/audit.ts#L601-L683)
+- [audit.ts (security):352-701](file://src/security/audit.ts#L352-L701)
+- [dangerous-config-flags.ts:1-120](file://src/security/dangerous-config-flags.ts#L1-L120)
 
 ## Conclusion
-OpenClaw’s configuration security model centers on SecretRef-based resolution, provider-backed secret sourcing, atomic apply with scrubbing, robust redaction, and comprehensive audit coverage. By following the operator loop, enforcing provider security controls, and leveraging audit logs and checks, operators can deploy and operate OpenClaw with strong confidentiality, integrity, and availability for sensitive configuration data.
+OpenClaw’s security configuration framework combines robust configuration I/O, schema-driven redaction, secure secret resolution, and comprehensive audits to minimize risk. Operators should enforce strict provider security, audit regularly, and apply least-privilege principles for gateway exposure and control UI access.
+
+[No sources needed since this section summarizes without analyzing specific files]
 
 ## Appendices
 
-### SecretRef Credential Surface
-- Supported: user-supplied credentials across providers and channels.
-- Unsupported: runtime-generated, rotating, OAuth refresh, and session-like artifacts.
+### Secure Configuration Patterns
+- Prefer SecretRef over plaintext credentials; use env allowlists and file provider path security.
+- Enforce strict gateway bind/auth and control UI allowed origins; avoid wildcard origins.
+- Use atomic writes and secure chmod for sensitive files; avoid world/group readability.
+- Regularly run secrets and security audits; address findings promptly.
 
 **Section sources**
-- [docs/reference/secretref-credential-surface.md](file://docs/reference/secretref-credential-surface.md#L14-L130)
+- [types.secrets.ts:176-225](file://src/config/types.secrets.ts#L176-L225)
+- [resolve.ts:208-276](file://src/secrets/resolve.ts#L208-L276)
+- [shared.ts:45-64](file://src/secrets/shared.ts#L45-L64)
+- [audit.ts (security):352-701](file://src/security/audit.ts#L352-L701)
+- [audit.ts (secrets):601-683](file://src/secrets/audit.ts#L601-L683)
 
-### Gateway RPC Reference
-- secrets.reload: re-resolve and swap runtime snapshot.
-- secrets.resolve: resolve assignments and diagnostics for given targets.
+### Compliance and Regulatory Considerations
+- Data minimization: Limit sensitive data in configuration; redact where possible.
+- Access control: Restrict filesystem permissions; use trusted proxies and strict origins.
+- Integrity and auditability: Maintain config audit logs; validate schema and signatures where applicable.
+- Transport security: Prefer HTTPS/TLS for control UI and gateway exposure; avoid exposing plaintext HTTP.
 
 **Section sources**
-- [src/gateway/protocol/schema/secrets.ts](file://src/gateway/protocol/schema/secrets.ts#L6-L33)
-- [src/gateway/server-methods/secrets.ts](file://src/gateway/server-methods/secrets.ts#L26-L68)
+- [io.ts:567-581](file://src/config/io.ts#L567-L581)
+- [audit.ts (security):352-701](file://src/security/audit.ts#L352-L701)
+
+### Documentation References
+- CLI configuration and secrets: [config.md](file://docs/cli/config.md), [secrets.md](file://docs/cli/secrets.md), [security.md](file://docs/cli/security.md)
+- Gateway configuration and secrets: [configuration.md](file://docs/gateway/configuration.md), [configuration-reference.md](file://docs/gateway/configuration-reference.md), [configuration-examples.md](file://docs/gateway/configuration-examples.md), [secrets.md (gateway)](file://docs/gateway/secrets.md), [secrets-plan-contract.md](file://docs/gateway/secrets-plan-contract.md)
+- Credential surface and reference: [secretref-credential-surface.md](file://docs/reference/secretref-credential-surface.md)
+
+**Section sources**
+- [config.md](file://docs/cli/config.md)
+- [secrets.md](file://docs/cli/secrets.md)
+- [security.md](file://docs/cli/security.md)
+- [configuration.md](file://docs/gateway/configuration.md)
+- [configuration-reference.md](file://docs/gateway/configuration-reference.md)
+- [configuration-examples.md](file://docs/gateway/configuration-examples.md)
+- [secrets.md (gateway)](file://docs/gateway/secrets.md)
+- [secrets-plan-contract.md](file://docs/gateway/secrets-plan-contract.md)
+- [secretref-credential-surface.md](file://docs/reference/secretref-credential-surface.md)

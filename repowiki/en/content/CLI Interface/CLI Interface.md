@@ -3,48 +3,21 @@
 <cite>
 **Referenced Files in This Document**
 - [docs/cli/index.md](file://docs/cli/index.md)
-- [src/cli/run-main.ts](file://src/cli/run-main.ts)
-- [src/cli/route.ts](file://src/cli/route.ts)
-- [src/cli/program/build-program.ts](file://src/cli/program/build-program.ts)
-- [src/cli/config-cli.ts](file://src/cli/config-cli.ts)
-- [src/cli/channels-cli.ts](file://src/cli/channels-cli.ts)
-- [src/commands/message.ts](file://src/commands/message.ts)
-- [src/commands/agents.ts](file://src/commands/agents.ts)
-- [src/cli/command-options.ts](file://src/cli/command-options.ts)
-- [src/cli/argv.ts](file://src/cli/argv.ts)
-- [src/cli/profile.ts](file://src/cli/profile.ts)
-- [src/cli/windows-argv.ts](file://src/cli/windows-argv.ts)
-- [src/cli/program/program-context.ts](file://src/cli/program/program-context.ts)
-- [src/cli/program/register.subclis.ts](file://src/cli/program/register.subclis.ts)
-- [src/cli/program/command-registry.ts](file://src/cli/program/command-registry.ts)
-- [src/cli/daemon-cli.ts](file://src/cli/daemon-cli.ts)
-- [src/cli/gateway-cli.ts](file://src/cli/gateway-cli.ts)
-- [src/cli/logs-cli.ts](file://src/cli/logs-cli.ts)
-- [src/cli/system-cli.ts](file://src/cli/system-cli.ts)
-- [src/cli/models-cli.ts](file://src/cli/models-cli.ts)
-- [src/cli/memory-cli.ts](file://src/cli/memory-cli.ts)
-- [src/cli/directory-cli.ts](file://src/cli/directory-cli.ts)
-- [src/cli/nodes-cli.ts](file://src/cli/nodes-cli.ts)
-- [src/cli/devices-cli.ts](file://src/cli/devices-cli.ts)
-- [src/cli/node-cli.ts](file://src/cli/node-cli.ts)
-- [src/cli/approvals-cli.ts](file://src/cli/approvals-cli.ts)
-- [src/cli/sandbox-cli.ts](file://src/cli/sandbox-cli.ts)
-- [src/cli/tui-cli.ts](file://src/cli/tui-cli.ts)
-- [src/cli/browser-cli.ts](file://src/cli/browser-cli.ts)
-- [src/cli/cron-cli.ts](file://src/cli/cron-cli.ts)
-- [src/cli/dns-cli.ts](file://src/cli/dns-cli.ts)
-- [src/cli/docs-cli.ts](file://src/cli/docs-cli.ts)
-- [src/cli/hooks-cli.ts](file://src/cli/hooks-cli.ts)
-- [src/cli/webhooks-cli.ts](file://src/cli/webhooks-cli.ts)
-- [src/cli/pairing-cli.ts](file://src/cli/pairing-cli.ts)
-- [src/cli/qr-cli.ts](file://src/cli/qr-cli.ts)
-- [src/cli/plugins-cli.ts](file://src/cli/plugins-cli.ts)
-- [src/cli/security-cli.ts](file://src/cli/security-cli.ts)
-- [src/cli/secrets-cli.ts](file://src/cli/secrets-cli.ts)
-- [src/cli/skills-cli.ts](file://src/cli/skills-cli.ts)
-- [src/cli/daemon-cli.ts](file://src/cli/daemon-cli.ts)
-- [src/cli/clawbot-cli.ts](file://src/cli/clawbot-cli.ts)
-- [src/cli/voicecall-cli.ts](file://src/cli/voicecall-cli.ts)
+- [docs/cli/gateway.md](file://docs/cli/gateway.md)
+- [docs/cli/plugins.md](file://docs/cli/plugins.md)
+- [docs/cli/config.md](file://docs/cli/config.md)
+- [docs/cli/completion.md](file://docs/cli/completion.md)
+- [docs/cli/daemon.md](file://docs/cli/daemon.md)
+- [docs/cli/agents.md](file://docs/cli/agents.md)
+- [docs/cli/channels.md](file://docs/cli/channels.md)
+- [docs/cli/system.md](file://docs/cli/system.md)
+- [docs/cli/models.md](file://docs/cli/models.md)
+- [docs/cli/memory.md](file://docs/cli/memory.md)
+- [docs/cli/doctor.md](file://docs/cli/doctor.md)
+- [docs/cli/status.md](file://docs/cli/status.md)
+- [docs/cli/health.md](file://docs/cli/health.md)
+- [docs/cli/sessions.md](file://docs/cli/sessions.md)
+- [docs/cli/reset.md](file://docs/cli/reset.md)
 </cite>
 
 ## Table of Contents
@@ -60,560 +33,499 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document provides comprehensive CLI interface documentation for OpenClaw. It covers command syntax, options, usage patterns, configuration, authentication, credentials, troubleshooting, debugging, logging, scripting, automation, integration with other tools, and best practices across environments and deployment scenarios. The CLI is organized around a central program builder, a routing system for built-in and plugin commands, and a robust configuration and secret resolution pipeline.
+This document provides a comprehensive guide to the OpenClaw command-line interface (CLI). It covers all major command categories including gateway management, agent operations, channel configuration, plugin installation, system administration, configuration management, authentication setup, and daemon control. It explains command syntax, options, parameters, and provides practical examples for both beginners and power users. It also documents shell completion, environment variables, configuration file precedence, and troubleshooting guidance for common CLI issues.
 
 ## Project Structure
-The CLI is implemented in TypeScript and organized around a modular command registry and a program builder. The main runtime flow initializes environment, ensures the CLI is on PATH when appropriate, validates the runtime, routes commands, registers plugin commands, and parses arguments.
+The CLI is organized around a central command with subcommands grouped by functional area. The top-level command supports global flags and styling options, and many subcommands support JSON output for scripting.
 
 ```mermaid
 graph TB
-A["run-main.ts<br/>Entry point"] --> B["route.ts<br/>Route-first handling"]
-B --> C["program/build-program.ts<br/>Build Commander program"]
-C --> D["program/command-registry.ts<br/>Register core commands"]
-C --> E["program/register.subclis.ts<br/>Register plugin subclis"]
-C --> F["program/program-context.ts<br/>Program context"]
-A --> G["argv.ts<br/>Argument parsing helpers"]
-A --> H["profile.ts<br/>Profile env handling"]
-A --> I["windows-argv.ts<br/>Windows argv normalization"]
-A --> J["command-options.ts<br/>Option inheritance helpers"]
+Root["openclaw [--dev] [--profile <name>] <command>"]
+subgraph "Setup & Onboarding"
+Setup["setup"]
+Onboard["onboard"]
+Configure["configure"]
+Config["config"]
+end
+subgraph "Gateway & Daemon"
+Gateway["gateway"]
+Daemon["daemon"]
+Logs["logs"]
+end
+subgraph "Agents & Sessions"
+Agents["agents"]
+Status["status"]
+Health["health"]
+Sessions["sessions"]
+end
+subgraph "Channels & Skills"
+Channels["channels"]
+Skills["skills"]
+Pairing["pairing"]
+Devices["devices"]
+end
+subgraph "Plugins & Extensions"
+Plugins["plugins"]
+Hooks["hooks"]
+Webhooks["webhooks.gmail"]
+Cron["cron"]
+end
+subgraph "System & Utilities"
+System["system"]
+Models["models"]
+Memory["memory"]
+Directory["directory"]
+Nodes["nodes"]
+Node["node"]
+Browser["browser"]
+DNS["dns"]
+Docs["docs"]
+TUI["tui"]
+QR["qr"]
+end
+Root --> Setup
+Root --> Onboard
+Root --> Configure
+Root --> Config
+Root --> Gateway
+Root --> Daemon
+Root --> Logs
+Root --> Agents
+Root --> Status
+Root --> Health
+Root --> Sessions
+Root --> Channels
+Root --> Skills
+Root --> Pairing
+Root --> Devices
+Root --> Plugins
+Root --> Hooks
+Root --> Webhooks
+Root --> Cron
+Root --> System
+Root --> Models
+Root --> Memory
+Root --> Directory
+Root --> Nodes
+Root --> Node
+Root --> Browser
+Root --> DNS
+Root --> Docs
+Root --> TUI
+Root --> QR
 ```
 
 **Diagram sources**
-- [src/cli/run-main.ts](file://src/cli/run-main.ts#L74-L151)
-- [src/cli/route.ts](file://src/cli/route.ts#L29-L47)
-- [src/cli/program/build-program.ts](file://src/cli/program/build-program.ts#L8-L20)
-- [src/cli/program/command-registry.ts](file://src/cli/program/command-registry.ts)
-- [src/cli/program/register.subclis.ts](file://src/cli/program/register.subclis.ts)
-- [src/cli/program/program-context.ts](file://src/cli/program/program-context.ts)
-- [src/cli/argv.ts](file://src/cli/argv.ts)
-- [src/cli/profile.ts](file://src/cli/profile.ts)
-- [src/cli/windows-argv.ts](file://src/cli/windows-argv.ts)
-- [src/cli/command-options.ts](file://src/cli/command-options.ts#L3-L44)
+- [docs/cli/index.md:93-264](file://docs/cli/index.md#L93-L264)
 
 **Section sources**
-- [src/cli/run-main.ts](file://src/cli/run-main.ts#L74-L151)
-- [src/cli/route.ts](file://src/cli/route.ts#L29-L47)
-- [src/cli/program/build-program.ts](file://src/cli/program/build-program.ts#L8-L20)
+- [docs/cli/index.md:9-1137](file://docs/cli/index.md#L9-L1137)
 
 ## Core Components
-- Program builder: constructs the Commander program, sets context, help, and registers commands.
-- Route-first system: handles special cases (help/version), banner emission, config readiness, and plugin loading before delegation.
-- Argument normalization: Windows argv normalization, profile parsing, and update flag rewriting.
-- Option inheritance: safely inherits option values from parent commands with bounded depth.
-- Global flags: dev isolation, profile switching, color/no-color, update shorthand, version.
+- Global flags and output styling:
+  - Global flags include isolation switches for development and alternate profiles, color control, update shorthands, and version flags.
+  - Output styling supports TTY rendering, OSC-8 hyperlinks, and JSON/plain modes for machine readability.
+- Command tree and subcommands:
+  - The CLI organizes functionality into top-level commands and hierarchical subcommands. Many subcommands support JSON output and deep probing options for diagnostics.
+
+Practical examples (syntax only):
+- Basic invocation and help:
+  - [docs/cli/index.md:96](file://docs/cli/index.md#L96)
+- Global flags:
+  - [docs/cli/index.md:62-68](file://docs/cli/index.md#L62-L68)
+- Output styling:
+  - [docs/cli/index.md:70-76](file://docs/cli/index.md#L70-L76)
 
 **Section sources**
-- [src/cli/program/build-program.ts](file://src/cli/program/build-program.ts#L8-L20)
-- [src/cli/route.ts](file://src/cli/route.ts#L10-L27)
-- [src/cli/run-main.ts](file://src/cli/run-main.ts#L25-L72)
-- [src/cli/command-options.ts](file://src/cli/command-options.ts#L20-L44)
-- [docs/cli/index.md](file://docs/cli/index.md#L62-L76)
+- [docs/cli/index.md:62-92](file://docs/cli/index.md#L62-L92)
+- [docs/cli/index.md:93-264](file://docs/cli/index.md#L93-L264)
 
 ## Architecture Overview
-The CLI follows a layered architecture:
-- Top-level program with global options and subcommands.
-- Built-in commands for setup, onboarding, configuration, messaging, agents, channels, gateway, system, models, memory, nodes, devices, approvals, sandbox, TUI, browser, cron, DNS, docs, hooks, webhooks, pairing, QR, plugins, security, secrets, skills, daemon, clawbot, voicecall, and more.
-- Plugin commands registered dynamically; plugin presence can add additional top-level commands.
-- Secrets resolution via gateway for sensitive inputs.
-- Structured logging and progress indicators for long-running operations.
+The CLI orchestrates operations across the Gateway (WebSocket server), channel backends, plugins, and system services. It supports:
+- Running and probing the Gateway locally or remotely.
+- Managing channel accounts and runtime status.
+- Installing and enabling plugins.
+- Inspecting and manipulating configuration and secrets.
+- Diagnosing system health and session state.
+- Controlling daemon/service lifecycle.
 
 ```mermaid
 graph TB
-subgraph "CLI Surface"
-P["Program<br/>build-program.ts"]
-R["Routing<br/>route.ts"]
-M["Main Runner<br/>run-main.ts"]
-end
-subgraph "Core Commands"
-CFG["config-cli.ts"]
-CH["channels-cli.ts"]
-MSG["message.ts"]
-AG["agents.ts"]
-GW["gateway-cli.ts"]
-SYS["system-cli.ts"]
-MOD["models-cli.ts"]
-MEM["memory-cli.ts"]
-DEV["devices-cli.ts"]
-NODE["nodes-cli.ts"]
-LOG["logs-cli.ts"]
-PLUG["plugins-cli.ts"]
-SEC["security-cli.ts"]
-SECRT["secrets-cli.ts"]
-SK["skills-cli.ts"]
-SAN["sandbox-cli.ts"]
-TUI["tui-cli.ts"]
-BR["browser-cli.ts"]
-CR["cron-cli.ts"]
-DNS["dns-cli.ts"]
-DOC["docs-cli.ts"]
-HK["hooks-cli.ts"]
-WH["webhooks-cli.ts"]
-PAIR["pairing-cli.ts"]
-QR["qr-cli.ts"]
-N["node-cli.ts"]
-APP["approvals-cli.ts"]
-CL["clawbot-cli.ts"]
-VO["voicecall-cli.ts"]
-end
-subgraph "Infrastructure"
-AR["argv.ts"]
-PR["profile.ts"]
-WIN["windows-argv.ts"]
-OPT["command-options.ts"]
-REG["program/command-registry.ts"]
-SUB["program/register.subclis.ts"]
-CTX["program/program-context.ts"]
-end
-M --> R --> P
-P --> REG
-P --> SUB
-P --> CTX
-M --> AR
-M --> PR
-M --> WIN
-M --> OPT
-P --> CFG
-P --> CH
-P --> MSG
-P --> AG
-P --> GW
-P --> SYS
-P --> MOD
-P --> MEM
-P --> DEV
-P --> NODE
-P --> LOG
-P --> PLUG
-P --> SEC
-P --> SECRT
-P --> SK
-P --> SAN
-P --> TUI
-P --> BR
-P --> CR
-P --> DNS
-P --> DOC
-P --> HK
-P --> WH
-P --> PAIR
-P --> QR
-P --> N
-P --> APP
-P --> CL
-P --> VO
+User["User"]
+CLI["OpenClaw CLI"]
+GW["Gateway (WebSocket)"]
+Ch["Channel Backends"]
+Plg["Plugins"]
+Sys["System Services"]
+User --> CLI
+CLI --> GW
+CLI --> Ch
+CLI --> Plg
+CLI --> Sys
+GW --> Ch
+GW --> Plg
 ```
 
-**Diagram sources**
-- [src/cli/run-main.ts](file://src/cli/run-main.ts#L74-L151)
-- [src/cli/route.ts](file://src/cli/route.ts#L29-L47)
-- [src/cli/program/build-program.ts](file://src/cli/program/build-program.ts#L8-L20)
-- [src/cli/program/command-registry.ts](file://src/cli/program/command-registry.ts)
-- [src/cli/program/register.subclis.ts](file://src/cli/program/register.subclis.ts)
-- [src/cli/program/program-context.ts](file://src/cli/program/program-context.ts)
-- [src/cli/argv.ts](file://src/cli/argv.ts)
-- [src/cli/profile.ts](file://src/cli/profile.ts)
-- [src/cli/windows-argv.ts](file://src/cli/windows-argv.ts)
-- [src/cli/command-options.ts](file://src/cli/command-options.ts#L3-L44)
-- [src/cli/config-cli.ts](file://src/cli/config-cli.ts#L395-L476)
-- [src/cli/channels-cli.ts](file://src/cli/channels-cli.ts#L70-L256)
-- [src/commands/message.ts](file://src/commands/message.ts#L16-L77)
-- [src/commands/agents.ts](file://src/commands/agents.ts#L1-L8)
-- [src/cli/gateway-cli.ts](file://src/cli/gateway-cli.ts)
-- [src/cli/system-cli.ts](file://src/cli/system-cli.ts)
-- [src/cli/models-cli.ts](file://src/cli/models-cli.ts)
-- [src/cli/memory-cli.ts](file://src/cli/memory-cli.ts)
-- [src/cli/devices-cli.ts](file://src/cli/devices-cli.ts)
-- [src/cli/nodes-cli.ts](file://src/cli/nodes-cli.ts)
-- [src/cli/logs-cli.ts](file://src/cli/logs-cli.ts)
-- [src/cli/plugins-cli.ts](file://src/cli/plugins-cli.ts)
-- [src/cli/security-cli.ts](file://src/cli/security-cli.ts)
-- [src/cli/secrets-cli.ts](file://src/cli/secrets-cli.ts)
-- [src/cli/skills-cli.ts](file://src/cli/skills-cli.ts)
-- [src/cli/sandbox-cli.ts](file://src/cli/sandbox-cli.ts)
-- [src/cli/tui-cli.ts](file://src/cli/tui-cli.ts)
-- [src/cli/browser-cli.ts](file://src/cli/browser-cli.ts)
-- [src/cli/cron-cli.ts](file://src/cli/cron-cli.ts)
-- [src/cli/dns-cli.ts](file://src/cli/dns-cli.ts)
-- [src/cli/docs-cli.ts](file://src/cli/docs-cli.ts)
-- [src/cli/hooks-cli.ts](file://src/cli/hooks-cli.ts)
-- [src/cli/webhooks-cli.ts](file://src/cli/webhooks-cli.ts)
-- [src/cli/pairing-cli.ts](file://src/cli/pairing-cli.ts)
-- [src/cli/qr-cli.ts](file://src/cli/qr-cli.ts)
-- [src/cli/node-cli.ts](file://src/cli/node-cli.ts)
-- [src/cli/approvals-cli.ts](file://src/cli/approvals-cli.ts)
-- [src/cli/clawbot-cli.ts](file://src/cli/clawbot-cli.ts)
-- [src/cli/voicecall-cli.ts](file://src/cli/voicecall-cli.ts)
+[No sources needed since this diagram shows conceptual workflow, not actual code structure]
 
 ## Detailed Component Analysis
 
-### Command Reference: Overview and Global Flags
-- Global flags include dev isolation, profile switching, color/no-color, update shorthand, and version printing.
-- Output styling respects TTY detection, OSC-8 hyperlinks, and JSON/plain modes.
-- Color palette is defined for consistent CLI theming.
-
-**Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L62-L91)
-
-### Command Reference: setup
-- Purpose: Initialize config and workspace.
-- Options:
-  - Workspace path selection.
-  - Wizard flags: interactive/non-interactive, mode selection, remote URL/token.
-- Behavior: Wizard auto-runs when wizard flags are present.
-
-**Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L313-L326)
-
-### Command Reference: onboard
-- Purpose: Interactive wizard to set up gateway, workspace, and skills.
-- Options:
-  - Workspace, reset scopes, non-interactive mode.
-  - Authentication choices and provider-specific tokens.
-  - Gateway configuration (port/bind/auth/token/password), Tailscale options.
-  - Daemon runtime selection, skipping components, JSON output.
-
-**Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L328-L380)
-
-### Command Reference: configure
-- Purpose: Interactive configuration wizard (models, channels, skills, gateway).
-- Notes: Launches wizard when run without subcommand.
-
-**Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L382-L384)
-
-### Command Reference: config
-- Subcommands:
-  - get: Print a config value by dot/bracket path; supports JSON output.
-  - set: Set a value with JSON5 parsing; strict JSON mode available; writes to resolved config to avoid leaking defaults.
-  - unset: Remove a value by path; writes to resolved config.
-  - file: Print active config file path.
-  - validate: Validate config against schema; supports JSON output.
-- Notes: Path parsing supports dot notation and bracket notation; blocked keys are rejected; array indices validated.
-
-**Section sources**
-- [src/cli/config-cli.ts](file://src/cli/config-cli.ts#L279-L308)
-- [src/cli/config-cli.ts](file://src/cli/config-cli.ts#L310-L331)
-- [src/cli/config-cli.ts](file://src/cli/config-cli.ts#L333-L342)
-- [src/cli/config-cli.ts](file://src/cli/config-cli.ts#L344-L393)
-- [src/cli/config-cli.ts](file://src/cli/config-cli.ts#L395-L476)
-
-### Command Reference: channels
-- Purpose: Manage chat channel accounts (WhatsApp/Telegram/Discord/Google Chat/Slack/Mattermost/Signal/iMessage/MS Teams).
-- Subcommands:
-  - list: Show configured channels and auth profiles; optional JSON and usage snapshots.
-  - status: Check gateway reachability and channel health; optional probe and timeout.
-  - capabilities: Show provider capabilities (intents/scopes/features); optional target and timeout.
-  - resolve: Resolve channel/user names to IDs; supports kind selection.
-  - logs: Show recent channel logs from gateway log file; configurable lines and JSON.
-  - add: Add or update channel accounts; supports provider-specific flags (tokens, homeserver, access tokens, etc.).
-  - remove: Disable or delete channel accounts; optional deletion without prompt.
-  - login/logout: Interactive channel login/logout (e.g., WhatsApp Web).
-- Examples: Provided in documentation.
-
-**Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L413-L468)
-- [src/cli/channels-cli.ts](file://src/cli/channels-cli.ts#L70-L256)
-
-### Command Reference: message
-- Purpose: Unified outbound messaging and channel actions.
-- Actions include send, poll, react/reactions, read/edit/delete, pin/unpin/pins, permissions, search, timeout, kick, ban, thread operations, emoji/sticker management, role/channel/member info, voice status, and events.
-- Behavior:
-  - Resolves command secret refs via gateway.
-  - Supports JSON output and dry-run.
-  - Progress spinner for send/poll actions unless JSON or dry-run.
-
-**Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L531-L553)
-- [src/commands/message.ts](file://src/commands/message.ts#L16-L77)
-
-### Command Reference: agent and agents
-- agent:
-  - Run one agent turn via the Gateway or locally.
-  - Options include message text, destination/session, thinking verbosity, channel, local mode, deliver, JSON output, and timeout.
-- agents:
-  - list: List configured agents; optional JSON and bindings.
-  - add: Add a new isolated agent; wizard-driven unless flags supplied; workspace required in non-interactive mode.
-  - bindings/list: List routing bindings; optional agent selection.
-  - bind/unbind: Add/remove bindings; supports repeatable binding specs.
-  - delete: Delete an agent and prune workspace/state; force flag available.
-
-**Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L554-L640)
-- [src/commands/agents.ts](file://src/commands/agents.ts#L1-L8)
-
-### Command Reference: acp
-- Purpose: Run the ACP bridge connecting IDEs to the Gateway.
-- Options and examples documented separately.
-
-**Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L641-L645)
-
-### Command Reference: status, health, sessions
-- status: Show linked session health and recent recipients; supports JSON, deep diagnostics, usage, timeout, verbose/debug.
-- health: Fetch health from the running Gateway; supports JSON, timeout, verbose.
-- sessions: List stored conversation sessions; supports JSON, verbose, store path, active minutes.
-
-**Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L647-L702)
-
-### Command Reference: gateway and daemon
-- gateway:
-  - Run the WebSocket Gateway with options for port/bind/auth/token/password, Tailscale, dev mode, reset, force, verbosity, Claude CLI logs, WS log level, raw stream, and raw stream path.
-  - Service subcommands: status/install/uninstall/start/stop/restart; supports JSON for scripting and deep probing.
-- daemon (legacy alias):
-  - Same service management as gateway service.
-
-**Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L739-L789)
-
-### Command Reference: logs
-- Tail Gateway file logs via RPC.
-- Behavior: Colorized structured view in TTY; plain text fallback; JSON output supported.
-
-**Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L790-L799)
-
-### Command Reference: system
-- Subcommands:
-  - event: Event management.
-  - heartbeat: last/enable/disable controls.
-  - presence: Presence management.
-
-**Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L173-L175)
-
-### Command Reference: models
-- Subcommands:
-  - list/status/set/set-image.
-  - aliases: list/add/remove.
-  - fallbacks: list/add/remove/clear.
-  - image-fallbacks: list/add/remove/clear.
-  - scan.
-  - auth: add/setup-token/paste-token.
-  - auth order: get/set/clear.
-
-**Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L184-L186)
-
-### Command Reference: memory
-- Subcommands:
-  - status: Show index stats.
-  - index: Reindex memory files.
-  - search: Semantic search over memory with query flag.
-
-**Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L293-L299)
-
-### Command Reference: directory
-- Purpose: Directory management commands.
-
-**Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L266-L266)
-
-### Command Reference: nodes and node
-- nodes: Node management commands.
-- node:
-  - run/status/install/uninstall/start/stop/restart.
-
-**Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L201-L210)
-
-### Command Reference: devices
-- Subcommands:
-  - list/approve/reject/remove/clear/rotate/revoke.
-
-**Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L498-L511)
-
-### Command Reference: approvals
-- Subcommands:
-  - get/set.
-  - allowlist: add/remove.
-
-**Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L211-L214)
-
-### Command Reference: sandbox
-- Subcommands:
-  - list/recreate/explain.
-
-**Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L187-L190)
-
-### Command Reference: tui
-- Purpose: Terminal User Interface commands.
-
-**Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L263-L263)
-
-### Command Reference: browser
-- Subcommands:
-  - status/start/stop/reset-profile/tabs/open/focus/close/profiles/create-profile/delete-profile/screenshot/snapshot/navigate/resize/click/type/press/hover/drag/select/upload/fill/dialog/wait/evaluate/console/pdf.
-
-**Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L215-L243)
-
-### Command Reference: cron
-- Subcommands:
-  - status/list/add/edit/rm/enable/disable/runs/run.
-
-**Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L191-L200)
-
-### Command Reference: dns
-- Subcommands:
-  - setup: Wide-area discovery DNS helper; supports apply flag.
-
-**Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L521-L528)
-
-### Command Reference: docs
-- Purpose: Documentation commands.
-
-**Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L260-L260)
-
-### Command Reference: hooks and webhooks
-- hooks:
-  - list/info/check/enable/disable/install/update.
-- webhooks gmail:
-  - setup: Requires account; supports project/topic/subscription/label/hook URL/token/push token, bind/port/path, include body/max bytes, renew minutes, Tailscale, and JSON.
-  - run: Runtime overrides for the same flags.
-
-**Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L244-L251)
-- [docs/cli/index.md](file://docs/cli/index.md#L512-L519)
-
-### Command Reference: pairing and qr
-- pairing:
-  - list/approve with optional notify.
-- qr:
-  - QR code management.
-
-**Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L488-L497)
-- [docs/cli/index.md](file://docs/cli/index.md#L254-L257)
-
-### Command Reference: plugins
-- Subcommands:
-  - list/info/install/enable/disable/doctor.
-- Notes: Most plugin changes require a gateway restart.
-
-**Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L281-L291)
-
-### Command Reference: skills
-- Subcommands:
-  - list/info/check; supports eligible, JSON, and verbose flags.
-
-**Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L470-L486)
-
-### Command Reference: security and secrets
-- security:
-  - audit: Audit config/local state; supports deep and fix flags.
-- secrets:
-  - reload: Re-resolve refs and atomically swap runtime snapshot.
-  - migrate: Migration helpers.
-  - configure: Interactive helper for provider setup and SecretRef mapping.
-  - apply: Apply a previously generated plan with dry-run support.
-
-**Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L268-L280)
-
-### Command Reference: clawbot and voicecall
-- clawbot: Legacy alias namespace.
-- voicecall: Plugin-specific command (if installed).
-
-**Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L58-L60)
-
-## Dependency Analysis
-- Command inheritance: Option values can be inherited from parent commands up to a bounded depth to reduce duplication.
-- Route-first pattern: Special commands (help/version) bypass normal registration; config readiness and plugin loading occur before delegation.
-- Plugin integration: Plugin CLI commands are registered after validating configuration and optionally loading the plugin registry.
-- Secrets resolution: Message and other commands resolve secret references via the Gateway before execution.
+### Gateway Management
+- Purpose:
+  - Run, query, and discover Gateways; manage the Gateway service lifecycle.
+- Key commands:
+  - Run the Gateway locally with optional auth, binding, and logging options.
+  - Probe health and status; query RPC endpoints.
+  - Discover Gateways via Bonjour.
+  - Manage the Gateway service (install/start/stop/restart/uninstall).
+- Options and parameters:
+  - Port, bind mode, auth mode/token/password, Tailscale exposure, dev/reset/force flags, logging styles, and raw stream capture.
+  - Probe options include URL override, token/password, timeout, and require-RPC checks.
+  - Service lifecycle supports JSON output and runtime selection.
+- Practical examples:
+  - Run a local Gateway:
+    - [docs/cli/gateway.md:26-34](file://docs/cli/gateway.md#L26-L34)
+  - Probe health and status:
+    - [docs/cli/gateway.md:85-118](file://docs/cli/gateway.md#L85-L118)
+  - Discover Gateways:
+    - [docs/cli/gateway.md:219-235](file://docs/cli/gateway.md#L219-L235)
+  - Service lifecycle:
+    - [docs/cli/gateway.md:180-198](file://docs/cli/gateway.md#L180-L198)
 
 ```mermaid
-graph LR
-A["run-main.ts"] --> B["route.ts"]
-B --> C["ensureConfigReady"]
-B --> D["ensurePluginRegistryLoaded"]
-A --> E["program/build-program.ts"]
-E --> F["registerProgramCommands"]
-E --> G["registerPluginCliCommands"]
-H["commands/message.ts"] --> I["resolveCommandSecretRefsViaGateway"]
+sequenceDiagram
+participant U as "User"
+participant C as "CLI"
+participant G as "Gateway"
+U->>C : "openclaw gateway status"
+C->>G : "RPC health/status"
+G-->>C : "Status + RPC result"
+C-->>U : "Human-readable or JSON"
 ```
 
 **Diagram sources**
-- [src/cli/run-main.ts](file://src/cli/run-main.ts#L94-L145)
-- [src/cli/route.ts](file://src/cli/route.ts#L10-L27)
-- [src/commands/message.ts](file://src/commands/message.ts#L21-L29)
-- [src/cli/program/build-program.ts](file://src/cli/program/build-program.ts#L17-L17)
-- [src/cli/program/register.subclis.ts](file://src/cli/program/register.subclis.ts)
-- [src/cli/program/command-registry.ts](file://src/cli/program/command-registry.ts)
+- [docs/cli/gateway.md:85-118](file://docs/cli/gateway.md#L85-L118)
 
 **Section sources**
-- [src/cli/command-options.ts](file://src/cli/command-options.ts#L20-L44)
-- [src/cli/run-main.ts](file://src/cli/run-main.ts#L117-L145)
-- [src/cli/route.ts](file://src/cli/route.ts#L10-L27)
-- [src/commands/message.ts](file://src/commands/message.ts#L21-L29)
+- [docs/cli/gateway.md:22-198](file://docs/cli/gateway.md#L22-L198)
+
+### Agent Operations
+- Purpose:
+  - Manage isolated agents with distinct workspaces, identities, and routing bindings.
+- Key commands:
+  - List agents, add agents, delete agents, and manage bindings.
+  - Set agent identity from workspace file or explicit fields.
+- Options and parameters:
+  - Workspace selection, model defaults, binding specifications, and JSON output.
+  - Binding scope behavior supports channel-only, account-specific, and wildcard bindings.
+- Practical examples:
+  - List and add agents:
+    - [docs/cli/agents.md:17-28](file://docs/cli/agents.md#L17-L28)
+  - Bind and unbind channels:
+    - [docs/cli/agents.md:30-73](file://docs/cli/agents.md#L30-L73)
+  - Set identity:
+    - [docs/cli/agents.md:75-103](file://docs/cli/agents.md#L75-L103)
+
+```mermaid
+flowchart TD
+Start(["agents bind"]) --> Parse["Parse --agent and --bind"]
+Parse --> Resolve["Resolve channel/account scope"]
+Resolve --> Upgrade{"Existing channel-only binding?"}
+Upgrade --> |Yes| UpgradePath["Upgrade to account-scoped binding"]
+Upgrade --> |No| AddNew["Add new binding"]
+UpgradePath --> Write["Write bindings to config"]
+AddNew --> Write
+Write --> End(["Done"])
+```
+
+**Diagram sources**
+- [docs/cli/agents.md:50-73](file://docs/cli/agents.md#L50-L73)
+
+**Section sources**
+- [docs/cli/agents.md:1-124](file://docs/cli/agents.md#L1-L124)
+
+### Channel Configuration
+- Purpose:
+  - Manage channel accounts, login/logout, status, logs, capabilities, and name resolution.
+- Key commands:
+  - List accounts, check status, tail logs, add/remove accounts, login/logout, capabilities, and resolve names to IDs.
+- Options and parameters:
+  - Channel selection, account IDs, display names, log lines, JSON output, and capability/probe targets.
+- Practical examples:
+  - Add/remove accounts:
+    - [docs/cli/channels.md:29-56](file://docs/cli/channels.md#L29-L56)
+  - Login/logout:
+    - [docs/cli/channels.md:59-64](file://docs/cli/channels.md#L59-L64)
+  - Capabilities and resolution:
+    - [docs/cli/channels.md:73-102](file://docs/cli/channels.md#L73-L102)
+
+```mermaid
+sequenceDiagram
+participant U as "User"
+participant C as "CLI"
+participant G as "Gateway"
+participant P as "Provider"
+U->>C : "openclaw channels status --probe"
+C->>G : "RPC status"
+G->>P : "Live checks (per account)"
+P-->>G : "Account health"
+G-->>C : "Aggregated status"
+C-->>U : "Human-readable or JSON"
+```
+
+**Diagram sources**
+- [docs/cli/channels.md:66-72](file://docs/cli/channels.md#L66-L72)
+
+**Section sources**
+- [docs/cli/channels.md:1-103](file://docs/cli/channels.md#L1-L103)
+
+### Plugin Installation and Management
+- Purpose:
+  - Discover, install, enable/disable, uninstall, update, and diagnose plugin issues.
+- Key commands:
+  - list, info, install, enable, disable, uninstall, doctor, update.
+- Options and parameters:
+  - Install from local paths/archives, npm specs, linking directories, and pinning versions.
+  - Uninstall with dry-run and keep-files options.
+  - Update supports individual and bulk updates with integrity checks.
+- Practical examples:
+  - Install and enable:
+    - [docs/cli/plugins.md:22-31](file://docs/cli/plugins.md#L22-L31)
+  - Install from npm with pinning:
+    - [docs/cli/plugins.md:46-49](file://docs/cli/plugins.md#L46-L49)
+  - Uninstall and update:
+    - [docs/cli/plugins.md:91-115](file://docs/cli/plugins.md#L91-L115)
+
+```mermaid
+flowchart TD
+Start(["plugins install"]) --> Detect["Detect type (.json, bundle, archive, link)"]
+Detect --> NPM["NPM spec?"]
+NPM --> |Yes| Validate["Validate registry-only, prerelease rules"]
+NPM --> |No| Copy["Copy/extract to extensions root"]
+Validate --> Link["--link? Add to load.paths"]
+Copy --> Enable["Enable if bundled"]
+Link --> Done(["Done"])
+Enable --> Done
+```
+
+**Diagram sources**
+- [docs/cli/plugins.md:44-90](file://docs/cli/plugins.md#L44-L90)
+
+**Section sources**
+- [docs/cli/plugins.md:1-122](file://docs/cli/plugins.md#L1-L122)
+
+### System Administration
+- Purpose:
+  - Enqueue system events, control heartbeats, and inspect presence.
+- Key commands:
+  - system event, system heartbeat (last/enable/disable), system presence.
+- Options and parameters:
+  - Event text and mode, JSON output, heartbeat control, and presence listing.
+- Practical examples:
+  - Enqueue event and control heartbeat:
+    - [docs/cli/system.md:17-46](file://docs/cli/system.md#L17-L46)
+  - Presence inspection:
+    - [docs/cli/system.md:48-55](file://docs/cli/system.md#L48-L55)
+
+**Section sources**
+- [docs/cli/system.md:1-61](file://docs/cli/system.md#L1-L61)
+
+### Configuration Management
+- Purpose:
+  - Get/set/unset config values, print active config file, and validate against schema without starting the Gateway.
+- Key commands:
+  - config get, set, unset, file, validate.
+- Options and parameters:
+  - Dot/bracket paths, JSON5 parsing, strict JSON flag, and JSON output for validation.
+- Practical examples:
+  - Get/set/unset and validate:
+    - [docs/cli/config.md:14-25](file://docs/cli/config.md#L14-L25)
+  - Paths and values:
+    - [docs/cli/config.md:27-52](file://docs/cli/config.md#L27-L52)
+
+**Section sources**
+- [docs/cli/config.md:1-69](file://docs/cli/config.md#L1-L69)
+
+### Authentication Setup
+- Purpose:
+  - Manage model provider authentication profiles and tokens.
+- Key commands:
+  - models auth add, login, setup-token, paste-token.
+- Options and parameters:
+  - Provider selection, token generation, and paste-based flows.
+- Practical examples:
+  - Auth flows:
+    - [docs/cli/models.md:67-72](file://docs/cli/models.md#L67-L72)
+
+**Section sources**
+- [docs/cli/models.md:65-82](file://docs/cli/models.md#L65-L82)
+
+### Daemon Control
+- Purpose:
+  - Legacy alias for Gateway service management; maps to the same service control surface as gateway service commands.
+- Key commands:
+  - status, install, uninstall, start, stop, restart.
+- Options and parameters:
+  - Shared options include URL/token/password overrides, timeouts, and JSON output.
+- Practical examples:
+  - Service lifecycle:
+    - [docs/cli/daemon.md:17-24](file://docs/cli/daemon.md#L17-L24)
+
+**Section sources**
+- [docs/cli/daemon.md:1-54](file://docs/cli/daemon.md#L1-L54)
+
+### Semantic Memory
+- Purpose:
+  - Manage semantic memory indexing and search.
+- Key commands:
+  - memory status, index, search.
+- Options and parameters:
+  - Agent scoping, verbose/deep/index flags, query input, max results, min score, JSON output.
+- Practical examples:
+  - Status/index/search:
+    - [docs/cli/memory.md:19-32](file://docs/cli/memory.md#L19-L32)
+
+**Section sources**
+- [docs/cli/memory.md:1-67](file://docs/cli/memory.md#L1-L67)
+
+### Diagnostics and Health
+- Purpose:
+  - Comprehensive health checks, guided repairs, and usage snapshots.
+- Key commands:
+  - doctor, status, health.
+- Options and parameters:
+  - Deep scans, repair/fix, JSON output, usage snapshots, and per-account timings.
+- Practical examples:
+  - Doctor and status:
+    - [docs/cli/doctor.md:18-24](file://docs/cli/doctor.md#L18-L24)
+    - [docs/cli/status.md:13-18](file://docs/cli/status.md#L13-L18)
+  - Health:
+    - [docs/cli/health.md:12-16](file://docs/cli/health.md#L12-L16)
+
+**Section sources**
+- [docs/cli/doctor.md:1-47](file://docs/cli/doctor.md#L1-L47)
+- [docs/cli/status.md:1-30](file://docs/cli/status.md#L1-L30)
+- [docs/cli/health.md:1-22](file://docs/cli/health.md#L1-L22)
+
+### Sessions
+- Purpose:
+  - List stored conversation sessions and perform cleanup maintenance.
+- Key commands:
+  - sessions, sessions cleanup.
+- Options and parameters:
+  - Agent scoping, all-agents, store path, JSON output, dry-run/enforce, active key protection.
+- Practical examples:
+  - List sessions and cleanup:
+    - [docs/cli/sessions.md:12-18](file://docs/cli/sessions.md#L12-L18)
+    - [docs/cli/sessions.md:54-78](file://docs/cli/sessions.md#L54-L78)
+
+**Section sources**
+- [docs/cli/sessions.md:1-111](file://docs/cli/sessions.md#L1-L111)
+
+### Reset and Uninstall
+- Purpose:
+  - Reset local config/state while keeping the CLI installed, and uninstall the Gateway service plus local data.
+- Key commands:
+  - reset, uninstall.
+- Options and parameters:
+  - Scope selection, yes/non-interactive flags, dry-run, and selective removal of service/state/workspace/app.
+- Practical examples:
+  - Reset:
+    - [docs/cli/reset.md:13-18](file://docs/cli/reset.md#L13-L18)
+
+**Section sources**
+- [docs/cli/reset.md:1-21](file://docs/cli/reset.md#L1-L21)
+
+### Shell Completion
+- Purpose:
+  - Generate and install shell completion scripts for zsh/bash/fish/PowerShell.
+- Key commands:
+  - completion.
+- Options and parameters:
+  - Shell target, install flag, write-state to state directory, and yes flag to skip prompts.
+- Practical examples:
+  - Completion usage:
+    - [docs/cli/completion.md:15-22](file://docs/cli/completion.md#L15-L22)
+
+**Section sources**
+- [docs/cli/completion.md:1-36](file://docs/cli/completion.md#L1-L36)
+
+## Dependency Analysis
+- Command interdependencies:
+  - Many commands rely on a reachable Gateway (RPC) for live probes and status reporting.
+  - Plugins extend functionality and may require a Gateway restart to take effect.
+  - Channel operations depend on provider credentials and SecretRef resolution.
+- Coupling and cohesion:
+  - The CLI maintains high cohesion within functional areas (gateway, channels, agents, plugins).
+  - Coupling is primarily through RPC calls to the Gateway and filesystem state under the OpenClaw state directory.
+
+```mermaid
+graph TB
+CLI["CLI"]
+GW["Gateway"]
+CH["Channels"]
+PL["Plugins"]
+CFG["Config/Secrets"]
+CLI --> GW
+CLI --> CH
+CLI --> PL
+CLI --> CFG
+GW --> CH
+GW --> PL
+CH --> CFG
+PL --> CFG
+```
+
+[No sources needed since this diagram shows conceptual relationships, not specific code structure]
 
 ## Performance Considerations
-- Long-running commands display progress indicators when appropriate (TTY sessions, non-JSON, non-dry-run).
-- JSON/plain modes disable styling for efficient machine parsing.
-- Memory search managers are closed on CLI teardown to free resources.
-
-**Section sources**
-- [src/cli/run-main.ts](file://src/cli/run-main.ts#L16-L23)
-- [docs/cli/index.md](file://docs/cli/index.md#L70-L76)
-
-## Troubleshooting Guide
-- Doctor: Health checks and quick fixes for config, gateway, and legacy services; supports deep scanning and non-interactive mode.
-- Logs: Tail Gateway file logs via RPC; structured view in TTY, plain text fallback; JSON output for machine parsing.
-- Channels status: Prints warnings with suggested fixes for common misconfigurations; points to doctor for remediation.
-- Security audit: Tightens safe defaults, chmod state/config, and performs best-effort live Gateway probe.
-- Secrets audit/reload: Scans for plaintext residues and unresolved refs; re-resolves and swaps runtime snapshot atomically.
-
-**Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L400-L410)
-- [docs/cli/index.md](file://docs/cli/index.md#L790-L799)
-- [docs/cli/index.md](file://docs/cli/index.md#L413-L428)
-- [docs/cli/index.md](file://docs/cli/index.md#L268-L273)
-- [docs/cli/index.md](file://docs/cli/index.md#L274-L280)
-
-## Conclusion
-OpenClaw’s CLI provides a comprehensive, extensible command surface with strong configuration, authentication, and secret management. Its route-first architecture, plugin integration, and robust error handling enable reliable automation and scripting across diverse environments. Use the command reference and troubleshooting sections to integrate the CLI into workflows and maintain systems effectively.
-
-## Appendices
-
-### Scripting and Automation Patterns
-- Use JSON output (--json) for machine-readable results.
-- Combine commands in scripts for provisioning (setup/onboard/config/plugins/channels/models) and monitoring (status/health/logs).
-- Leverage cron and webhooks for scheduled tasks and event-driven workflows.
-- Employ secrets reload/audit to keep credentials secure and up-to-date.
+- Use JSON output for machine-readable pipelines to reduce parsing overhead.
+- Limit deep probes and concurrency where appropriate to avoid rate limits and excessive resource usage.
+- Prefer targeted commands (e.g., specify agent/channel scopes) to minimize unnecessary work.
 
 [No sources needed since this section provides general guidance]
 
-### Integration with Other Tools and Workflows
-- Plugins can add additional top-level commands; most plugin changes require a gateway restart.
-- Hooks and webhooks integrate with external systems (e.g., Gmail Pub/Sub).
-- Browser and TUI commands support headless automation and UI workflows.
+## Troubleshooting Guide
+- Gateway connectivity and auth:
+  - Use gateway status with require-RPC to ensure the RPC endpoint is reachable.
+  - Probe with explicit URL/token/password when config/env credentials are unavailable.
+- Channel health:
+  - Run channels status with probe and doctor for guided fixes.
+  - Use channels logs to inspect recent channel logs from the Gateway log file.
+- Secrets and configuration:
+  - Use doctor for guided repairs and security audits.
+  - Use config validate to check schema compliance without starting the Gateway.
+- Plugins:
+  - Use plugins doctor to diagnose load failures.
+  - Reinstall or update plugins with integrity checks and pinning for stability.
+- Sessions:
+  - Use sessions cleanup to prune old entries and reclaim space.
+- Environment and profiles:
+  - Isolate state with --dev or --profile to avoid conflicts.
+  - Disable ANSI colors with --no-color or NO_COLOR=1 for non-TTY environments.
 
 **Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L291-L291)
-- [docs/cli/index.md](file://docs/cli/index.md#L512-L519)
-- [docs/cli/index.md](file://docs/cli/index.md#L215-L243)
-- [docs/cli/index.md](file://docs/cli/index.md#L263-L263)
+- [docs/cli/gateway.md:64-118](file://docs/cli/gateway.md#L64-L118)
+- [docs/cli/channels.md:66-72](file://docs/cli/channels.md#L66-L72)
+- [docs/cli/doctor.md:26-35](file://docs/cli/doctor.md#L26-L35)
+- [docs/cli/plugins.md:28-31](file://docs/cli/plugins.md#L28-L31)
+- [docs/cli/sessions.md:54-78](file://docs/cli/sessions.md#L54-L78)
 
-### Best Practices for CLI Usage
-- Use profiles to isolate state and ports for different environments.
-- Prefer non-interactive flags for CI/automation.
-- Use doctor and security audit regularly to maintain healthy configurations.
-- Employ JSON output for tooling integrations and reduce brittle text parsing.
+## Conclusion
+The OpenClaw CLI provides a comprehensive toolkit for managing Gateways, agents, channels, plugins, and system services. With global flags, JSON output, and deep diagnostic capabilities, it supports both interactive workflows and automated pipelines. Use the examples and guidance here to streamline daily operations, troubleshoot issues, and maintain a secure and efficient OpenClaw environment.
+
+[No sources needed since this section summarizes without analyzing specific files]
+
+## Appendices
+
+### Command Syntax Quick Reference
+- Global flags:
+  - [--dev], [--profile <name>], [--no-color], [--update], [-V|--version|-v]
+- Output styling:
+  - [--json], [--plain], [--no-color], NO_COLOR=1
+- Command tree overview:
+  - [docs/cli/index.md:93-264](file://docs/cli/index.md#L93-L264)
 
 **Section sources**
-- [docs/cli/index.md](file://docs/cli/index.md#L62-L68)
-- [docs/cli/index.md](file://docs/cli/index.md#L400-L410)
-- [docs/cli/index.md](file://docs/cli/index.md#L268-L273)
+- [docs/cli/index.md:62-92](file://docs/cli/index.md#L62-L92)
+- [docs/cli/index.md:93-264](file://docs/cli/index.md#L93-L264)

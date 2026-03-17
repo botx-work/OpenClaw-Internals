@@ -2,27 +2,23 @@
 
 <cite>
 **Referenced Files in This Document**
-- [http-endpoint-helpers.ts](file://src/gateway/http-endpoint-helpers.ts)
-- [http-auth-helpers.ts](file://src/gateway/http-auth-helpers.ts)
-- [http-common.ts](file://src/gateway/http-common.ts)
-- [auth-rate-limit.ts](file://src/gateway/auth-rate-limit.ts)
-- [auth.ts](file://src/gateway/auth.ts)
-- [protocol/index.ts](file://src/gateway/protocol/index.ts)
-- [protocol/schema.ts](file://src/gateway/protocol/schema.ts)
-- [protocol/schema/frames.ts](file://src/gateway/protocol/schema/frames.ts)
 - [protocol.md](file://docs/gateway/protocol.md)
-- [server.auth.default-token.suite.ts](file://src/gateway/server.auth.default-token.suite.ts)
-- [server.ws-connection/message-handler.ts](file://src/gateway/server.ws-connection/message-handler.ts)
+- [authentication.md](file://docs/gateway/authentication.md)
+- [heartbeat.md](file://docs/gateway/heartbeat.md)
+- [configuration-reference.md](file://docs/gateway/configuration-reference.md)
+- [manifest.md](file://docs/plugins/manifest.md)
+- [agent-tools.md](file://docs/plugins/agent-tools.md)
+- [schema.ts](file://src/gateway/protocol/schema.ts)
+- [frames.ts](file://src/gateway/protocol/schema/frames.ts)
+- [routes.ts](file://src/cli/program/routes.ts)
 - [index.ts](file://src/plugin-sdk/index.ts)
-- [plugin-sdk.md](file://docs/refactor/plugin-sdk.md)
-- [plugin.md](file://docs/tools/plugin.md)
-- [rpc.md](file://docs/reference/rpc.md)
-- [signal/client.ts](file://src/signal/client.ts)
-- [client.ts](file://src/imessage/client.ts)
-- [BridgeFrames.swift](file://apps/shared/OpenClawKit/Sources/OpenClawKit/BridgeFrames.swift)
-- [GatewayWebSocketTestSupport.swift](file://apps/macos/Tests/OpenClawIPCTests/GatewayWebSocketTestSupport.swift)
-- [GatewayNodeSessionTests.swift](file://apps/shared/OpenClawKit/Tests/OpenClawKitTests/GatewayNodeSessionTests.swift)
-- [http-auth.ts](file://src/browser/http-auth.ts)
+- [http-registry.ts](file://src/plugins/http-registry.ts)
+- [registry.ts](file://src/plugins/registry.ts)
+- [loader.test.ts](file://src/plugins/loader.test.ts)
+- [check-no-register-http-handler.mjs](file://scripts/check-no-register-http-handler.mjs)
+- [message-handler.ts](file://src/gateway/server/ws-connection/message-handler.ts)
+- [server.auth.default-token.suite.ts](file://src/gateway/server.auth.default-token.suite.ts)
+- [plugin-sdk.md](file://docs/zh-CN/refactor/plugin-sdk.md)
 </cite>
 
 ## Table of Contents
@@ -38,345 +34,346 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document provides a comprehensive API reference for OpenClaw’s public interfaces:
-- HTTP API: request/response schemas, authentication, and error handling
-- WebSocket API: connection lifecycle, framing, roles/scopes, and events
-- Plugin SDK: exported runtime surface and plugin registration
-- RPC adapters: protocol specifications and client implementation guidelines for external integrations
-
-It includes authentication mechanisms, rate limiting, versioning, practical examples, and integration patterns tailored for implementers.
+This document provides comprehensive API documentation for OpenClaw’s control plane and plugin ecosystem. It covers:
+- The WebSocket-based Gateway protocol (connect, framing, roles/scopes, device auth, versioning)
+- HTTP/Webhook integration points for plugins
+- Plugin SDK contracts, development patterns, and manifest requirements
+- Security, rate limiting, and authentication strategies
+- Practical examples, client implementation guidelines, and performance optimization tips
+- Migration guidance for deprecated APIs and backwards compatibility notes
 
 ## Project Structure
-OpenClaw exposes its public APIs primarily through:
-- Gateway HTTP endpoints and WebSocket server
-- Plugin SDK exports and plugin registration
-- RPC adapters for external CLIs (signal-cli, legacy imsg)
+OpenClaw exposes a unified WebSocket control plane for operators and nodes, and a plugin SDK for extending capabilities. HTTP endpoints are primarily used for plugin-defined webhooks and CLI-driven operations.
 
 ```mermaid
 graph TB
-subgraph "Gateway"
-HTTP["HTTP Endpoints<br/>POST JSON handlers"]
-WS["WebSocket Server<br/>Connect + Frames"]
-Auth["Auth & Rate Limit"]
+subgraph "Clients"
+OP["Operator Client<br/>(CLI/UI)"]
+ND["Node Client<br/>(capability host)"]
 end
-subgraph "Plugin SDK"
-SDK["Plugin Runtime Surface<br/>registerHttpRoute, logging, state"]
+GW["Gateway Server<br/>(WebSocket)"]
+subgraph "Plugins"
+SDK["Plugin SDK<br/>(index.ts)"]
+REG["HTTP Registry<br/>(http-registry.ts)"]
+MAN["Manifest<br/>(manifest.md)"]
 end
-subgraph "RPC Adapters"
-Signal["Signal RPC over HTTP"]
-IMsg["iMessage RPC over stdio"]
-end
-HTTP --> Auth
-WS --> Auth
-SDK --> HTTP
-SDK --> WS
-Signal --> HTTP
-IMsg --> WS
+OP --> GW
+ND --> GW
+SDK --> REG
+MAN --> SDK
 ```
 
 **Diagram sources**
-- [http-endpoint-helpers.ts](file://src/gateway/http-endpoint-helpers.ts#L1-L48)
-- [server.ws-connection/message-handler.ts](file://src/gateway/server.ws-connection/message-handler.ts#L436-L478)
-- [auth-rate-limit.ts](file://src/gateway/auth-rate-limit.ts#L1-L117)
-- [index.ts](file://src/plugin-sdk/index.ts#L1-L812)
-- [rpc.md](file://docs/reference/rpc.md#L1-L44)
+- [protocol.md:10-268](file://docs/gateway/protocol.md#L10-L268)
+- [index.ts:1-800](file://src/plugin-sdk/index.ts#L1-L800)
+- [http-registry.ts:76-92](file://src/plugins/http-registry.ts#L76-L92)
+- [manifest.md:1-100](file://docs/plugins/manifest.md#L1-L100)
 
 **Section sources**
-- [http-endpoint-helpers.ts](file://src/gateway/http-endpoint-helpers.ts#L1-L48)
-- [protocol.md](file://docs/gateway/protocol.md#L1-L261)
+- [protocol.md:10-268](file://docs/gateway/protocol.md#L10-L268)
+- [index.ts:1-800](file://src/plugin-sdk/index.ts#L1-L800)
+- [http-registry.ts:76-92](file://src/plugins/http-registry.ts#L76-L92)
+- [manifest.md:1-100](file://docs/plugins/manifest.md#L1-L100)
 
 ## Core Components
-- HTTP API: POST-only JSON endpoints with bearer token authentication and standardized error responses
-- WebSocket API: JSON text frames with typed request/response/event frames, role-scoped access, and device-based authentication
-- Plugin SDK: unified exports for plugin authors, including HTTP route registration and runtime helpers
-- RPC adapters: two patterns—HTTP daemon (signal-cli) and stdio child process (legacy imsg)
+- Gateway WebSocket protocol: transport, handshake, framing, roles/scopes, device identity, and versioning.
+- Plugin SDK: registration APIs, HTTP route registration, tool registration, and runtime utilities.
+- CLI routes: health/status/gateway status/sessions/agents/memory/config/models.
+- Authentication: token-based auth, device token issuance, and migration guidance.
 
 **Section sources**
-- [http-endpoint-helpers.ts](file://src/gateway/http-endpoint-helpers.ts#L1-L48)
-- [http-auth-helpers.ts](file://src/gateway/http-auth-helpers.ts#L1-L30)
-- [http-common.ts](file://src/gateway/http-common.ts#L36-L71)
-- [protocol/schema/frames.ts](file://src/gateway/protocol/schema/frames.ts#L1-L164)
-- [protocol.md](file://docs/gateway/protocol.md#L1-L261)
-- [index.ts](file://src/plugin-sdk/index.ts#L1-L812)
-- [rpc.md](file://docs/reference/rpc.md#L1-L44)
+- [protocol.md:10-268](file://docs/gateway/protocol.md#L10-L268)
+- [authentication.md:1-180](file://docs/gateway/authentication.md#L1-L180)
+- [routes.ts:1-334](file://src/cli/program/routes.ts#L1-L334)
+- [index.ts:1-800](file://src/plugin-sdk/index.ts#L1-L800)
 
 ## Architecture Overview
-The Gateway acts as the central control plane and node transport. Clients connect over WebSocket and authenticate via bearer tokens or device signatures. HTTP endpoints complement the WebSocket surface for specific operations.
+The Gateway acts as the central control plane. Operators connect to manage systems; nodes connect to expose capabilities. Plugins extend functionality via SDK APIs and HTTP routes.
+
+```mermaid
+sequenceDiagram
+participant OP as "Operator Client"
+participant GW as "Gateway Server"
+participant ND as "Node Client"
+OP->>GW : "connect" with role/operator, scopes, auth
+ND->>GW : "connect" with role/node, caps/commands/permissions
+GW-->>OP : "hello-ok" with protocol, policy, snapshot
+GW-->>ND : "hello-ok" with protocol, policy, snapshot
+OP->>GW : "req" methods (status, sessions, models)
+ND->>GW : "event" notifications (presence, system)
+GW-->>OP : "res" responses
+GW-->>ND : "res" responses
+```
+
+**Diagram sources**
+- [protocol.md:22-126](file://docs/gateway/protocol.md#L22-L126)
+- [protocol.md:127-134](file://docs/gateway/protocol.md#L127-L134)
+- [protocol.md:191-209](file://docs/gateway/protocol.md#L191-L209)
+
+## Detailed Component Analysis
+
+### Gateway WebSocket Protocol
+- Transport: WebSocket with JSON text frames; first frame must be a connect request.
+- Handshake: Challenge-response with device nonce and signature verification.
+- Framing: req/res/event with idempotency for side-effecting methods.
+- Roles and scopes: operator vs node; operator scopes include read/write/admin/approvals/pairing.
+- Device identity: device.id, publicKey, signature, signedAt, nonce; migration guidance for legacy signing behavior.
+- Versioning: PROTOCOL_VERSION negotiated via min/maxProtocol; schema generation tooling included.
+- TLS and certificate pinning: optional; recommended for production.
+
+```mermaid
+flowchart TD
+Start(["Connect"]) --> Challenge["Receive 'connect.challenge' with nonce/ts"]
+Challenge --> Sign["Sign nonce with device key<br/>Include device.nonce in connect"]
+Sign --> SendConnect["Send 'req' connect with role/scopes/caps/auth/device"]
+SendConnect --> Verify{"Protocol match?"}
+Verify --> |No| Reject["Close with error"]
+Verify --> |Yes| Hello["Respond 'res' hello-ok with protocol/policy/snapshot"]
+Hello --> Ready(["Connected"])
+```
+
+**Diagram sources**
+- [protocol.md:22-126](file://docs/gateway/protocol.md#L22-L126)
+- [protocol.md:191-209](file://docs/gateway/protocol.md#L191-L209)
+- [message-handler.ts:343-385](file://src/gateway/server/ws-connection/message-handler.ts#L343-L385)
+- [server.auth.default-token.suite.ts:302-331](file://src/gateway/server.auth.default-token.suite.ts#L302-L331)
+
+**Section sources**
+- [protocol.md:10-268](file://docs/gateway/protocol.md#L10-L268)
+- [message-handler.ts:343-385](file://src/gateway/server/ws-connection/message-handler.ts#L343-L385)
+- [server.auth.default-token.suite.ts:302-331](file://src/gateway/server.auth.default-token.suite.ts#L302-L331)
+
+### Authentication and Device Identity
+- Token-based auth: OPENCLAW_GATEWAY_TOKEN or CLI token; device tokens issued post-pairing.
+- Auth failure diagnostics: details.code and recommendedNextStep for recovery.
+- Device auth migration: always wait for connect.challenge, sign v2/v3 payload, include nonce.
+- Rotation and revocation: device.token.rotate and device.token.revoke require operator.pairing scope.
 
 ```mermaid
 sequenceDiagram
 participant Client as "Client"
-participant WS as "Gateway WS Server"
-participant Auth as "Auth Layer"
-participant Lim as "Rate Limiter"
-Client->>WS : "connect" (first frame)
-WS->>Client : "event : connect.challenge" (nonce)
-Client->>WS : "req : connect" (client, role, scopes, auth, device)
-WS->>Auth : "authorize"
-Auth->>Lim : "check/recordFailure/reset"
-Auth-->>WS : "auth result"
-WS-->>Client : "res : hello-ok" (protocol, policy)
+participant GW as "Gateway"
+Client->>GW : "connect" with auth.token
+GW-->>Client : "res" error with details.code if mismatch
+GW-->>Client : "res" hello-ok with auth.deviceToken if success
+Client->>GW : "connect" with auth.deviceToken for subsequent sessions
 ```
 
 **Diagram sources**
-- [protocol.md](file://docs/gateway/protocol.md#L22-L90)
-- [server.ws-connection/message-handler.ts](file://src/gateway/server.ws-connection/message-handler.ts#L436-L478)
-- [auth.ts](file://src/gateway/auth.ts#L448-L485)
-- [auth-rate-limit.ts](file://src/gateway/auth-rate-limit.ts#L1-L117)
-
-## Detailed Component Analysis
-
-### HTTP API
-- Endpoint pattern: POST JSON only; path matching and method enforcement handled centrally
-- Authentication: Bearer token via Authorization header; supports rate-limited retries
-- Error responses: standardized JSON with error type and message; rate limit adds Retry-After header
-
-Key behaviors:
-- Path and method gating
-- Bearer token extraction and validation
-- JSON body parsing with size limits
-- Unauthorized and rate-limited responses
-
-```mermaid
-flowchart TD
-Start(["Incoming POST"]) --> PathMatch{"Matches configured path?"}
-PathMatch --> |No| ReturnFalse["Return false (not handled)"]
-PathMatch --> |Yes| MethodOK{"Method is POST?"}
-MethodOK --> |No| MNA["405 Method Not Allowed"]
-MethodOK --> |Yes| Auth["Authorize Bearer Token"]
-Auth --> |Fail| AuthErr["401 Unauthorized or 429 Rate Limited"]
-Auth --> |Pass| Body["Parse JSON body (limit bytes)"]
-Body --> |Fail| InvalidReq["400 Invalid Request"]
-Body --> |Success| Done(["Return { body }"])
-```
-
-**Diagram sources**
-- [http-endpoint-helpers.ts](file://src/gateway/http-endpoint-helpers.ts#L7-L47)
-- [http-auth-helpers.ts](file://src/gateway/http-auth-helpers.ts#L7-L29)
-- [http-common.ts](file://src/gateway/http-common.ts#L36-L71)
+- [protocol.md:200-215](file://docs/gateway/protocol.md#L200-L215)
+- [authentication.md:1-180](file://docs/gateway/authentication.md#L1-L180)
 
 **Section sources**
-- [http-endpoint-helpers.ts](file://src/gateway/http-endpoint-helpers.ts#L1-L48)
-- [http-auth-helpers.ts](file://src/gateway/http-auth-helpers.ts#L1-L30)
-- [http-common.ts](file://src/gateway/http-common.ts#L36-L71)
-- [http-auth.ts](file://src/browser/http-auth.ts#L1-L48)
+- [protocol.md:200-215](file://docs/gateway/protocol.md#L200-L215)
+- [authentication.md:1-180](file://docs/gateway/authentication.md#L1-L180)
 
-### WebSocket API
-- Transport: JSON text frames over WebSocket
-- Framing: discriminated union of request, response, and event frames
-- Handshake: first frame must be a connect request; server emits a connect.challenge event with nonce
-- Roles and scopes: operator (control plane) vs node (capability host); scopes gate method access
-- Device authentication: clients must sign server nonce and include device identity
-- Versioning: clients declare min/max protocol; mismatch closes connection with error
+### HTTP/Webhook Integration for Plugins
+- Dynamic HTTP routes: registerHttpRoute({ path, auth, match, handler }) and registerPluginHttpRoute.
+- Deprecated API: registerHttpHandler is flagged by linter; migrate to new APIs.
+- Route registration lifecycle: plugin-owned routes can be replaced or unregistered; diagnostics surface ownership conflicts.
 
 ```mermaid
 sequenceDiagram
-participant C as "Client"
-participant S as "Gateway"
-C->>S : "event : connect.challenge { nonce }"
-C->>S : "req : connect { client, role, scopes, auth, device }"
-S->>S : "validate protocol range"
-S-->>C : "res : hello-ok { protocol, policy }"
-Note over C,S : "Subsequent frames : req/res/event"
+participant Plugin as "Plugin"
+participant SDK as "Plugin SDK"
+participant Reg as "HTTP Registry"
+Plugin->>SDK : "registerHttpRoute({ path, auth, match, handler })"
+SDK->>Reg : "registerPluginHttpRoute(...)"
+Reg-->>Plugin : "unregister() handle for lifecycle"
 ```
 
 **Diagram sources**
-- [protocol.md](file://docs/gateway/protocol.md#L22-L90)
-- [protocol/schema/frames.ts](file://src/gateway/protocol/schema/frames.ts#L125-L164)
-- [server.ws-connection/message-handler.ts](file://src/gateway/server.ws-connection/message-handler.ts#L436-L478)
+- [http-registry.ts:76-92](file://src/plugins/http-registry.ts#L76-L92)
+- [registry.ts:413-461](file://src/plugins/registry.ts#L413-L461)
+- [loader.test.ts:1485-1519](file://src/plugins/loader.test.ts#L1485-L1519)
+- [check-no-register-http-handler.mjs:1-38](file://scripts/check-no-register-http-handler.mjs#L1-L38)
 
 **Section sources**
-- [protocol.md](file://docs/gateway/protocol.md#L1-L261)
-- [protocol/schema/frames.ts](file://src/gateway/protocol/schema/frames.ts#L1-L164)
-- [server.auth.default-token.suite.ts](file://src/gateway/server.auth.default-token.suite.ts#L301-L330)
+- [http-registry.ts:76-92](file://src/plugins/http-registry.ts#L76-L92)
+- [registry.ts:413-461](file://src/plugins/registry.ts#L413-L461)
+- [loader.test.ts:1485-1519](file://src/plugins/loader.test.ts#L1485-L1519)
+- [check-no-register-http-handler.mjs:1-38](file://scripts/check-no-register-http-handler.mjs#L1-L38)
 
-### Plugin SDK API
-- Exports include channel adapters, runtime helpers, HTTP/webhook utilities, and plugin registration
-- HTTP route registration: plugins register routes with explicit auth requirements
-- Runtime surface: logging, state directory resolution, and keyed async queues
+### Plugin SDK Contracts and Development Patterns
+- Exports: channel adapters, runtime types, webhook utilities, status helpers, provider auth helpers, and more.
+- Plugin runtime: subagent run/wait/get-session, session binding service, and runtime store.
+- Agent tools: registerTool with JSON schema; optional tools gated by allowlists.
+- Manifest requirements: openclaw.plugin.json with id and configSchema; validation behavior and notes.
 
 ```mermaid
 classDiagram
-class PluginSDK {
-+registerHttpRoute(...)
-+registerWebhookTarget(...)
-+logging helpers
-+state helpers
-+channel adapters
+class OpenClawPluginApi {
++registerTool(spec, options)
++registerHttpRoute(opts)
++registerPluginHttpRoute(opts)
++runtime
 }
 class PluginRuntime {
-+channel.text
-+channel.reply
-+channel.routing
-+channel.pairing
-+channel.media
-+channel.mentions
-+channel.groups
-+channel.debounce
-+channel.commands
-+logging
-+state
++subagentRun(params)
++subagentWait(params)
++getSession(params)
 }
-PluginSDK --> PluginRuntime : "exports"
+class SessionBindingService {
++bind(input)
++unbind(input)
+}
+OpenClawPluginApi --> PluginRuntime : "exposes"
+OpenClawPluginApi --> SessionBindingService : "exposes"
 ```
 
 **Diagram sources**
-- [index.ts](file://src/plugin-sdk/index.ts#L1-L812)
-- [plugin-sdk.md](file://docs/refactor/plugin-sdk.md#L45-L145)
+- [index.ts:1-800](file://src/plugin-sdk/index.ts#L1-L800)
+- [agent-tools.md:1-100](file://docs/plugins/agent-tools.md#L1-L100)
+- [manifest.md:1-100](file://docs/plugins/manifest.md#L1-L100)
 
 **Section sources**
-- [index.ts](file://src/plugin-sdk/index.ts#L1-L812)
-- [plugin-sdk.md](file://docs/refactor/plugin-sdk.md#L45-L145)
-- [plugin.md](file://docs/tools/plugin.md#L139-L144)
+- [index.ts:1-800](file://src/plugin-sdk/index.ts#L1-L800)
+- [agent-tools.md:1-100](file://docs/plugins/agent-tools.md#L1-L100)
+- [manifest.md:1-100](file://docs/plugins/manifest.md#L1-L100)
+- [plugin-sdk.md:42-50](file://docs/zh-CN/refactor/plugin-sdk.md#L42-L50)
 
-### RPC Adapters
-Two patterns are used for external CLI integrations:
-- Pattern A: HTTP daemon (signal-cli)
-  - JSON-RPC over HTTP
-  - Event stream via SSE endpoint
-  - Health probe endpoint
-- Pattern B: stdio child process (legacy: imsg)
-  - JSON-RPC line-delimited over stdin/stdout
-  - No TCP port, process lifecycle managed by gateway
-
-```mermaid
-sequenceDiagram
-participant GW as "Gateway"
-participant CLI as "External CLI"
-GW->>CLI : "spawn/start process"
-CLI-->>GW : "stdio : JSON-RPC lines"
-GW->>CLI : "RPC : send/watch.subscribe"
-CLI-->>GW : "notifications : method=message"
-GW->>CLI : "RPC : chats.list (probe)"
-```
-
-**Diagram sources**
-- [rpc.md](file://docs/reference/rpc.md#L13-L38)
-- [signal/client.ts](file://src/signal/client.ts#L70-L107)
-- [client.ts](file://src/imessage/client.ts#L196-L255)
+### CLI Routes and Gateway Interaction
+- Health/status/gateway status/sessions/agents/memory/config/models routes with flags and timeouts.
+- These routes interact with the gateway RPC and can influence plugin loading behavior for performance.
 
 **Section sources**
-- [rpc.md](file://docs/reference/rpc.md#L1-L44)
-- [signal/client.ts](file://src/signal/client.ts#L70-L107)
-- [client.ts](file://src/imessage/client.ts#L196-L255)
+- [routes.ts:1-334](file://src/cli/program/routes.ts#L1-L334)
+
+### Protocol Schemas and Versioning
+- Protocol schemas exported from schema.ts define the full gateway API surface.
+- Frames schema defines req/res/event structures and error shape.
+
+**Section sources**
+- [schema.ts:1-19](file://src/gateway/protocol/schema.ts#L1-L19)
+- [frames.ts:1-165](file://src/gateway/protocol/schema/frames.ts#L1-L165)
+
+### Heartbeat and Operational Guidance
+- Heartbeat cadence, target routing, reasoning delivery, and visibility controls.
+- Cost-aware patterns: isolated sessions, light context, cheaper models.
+
+**Section sources**
+- [heartbeat.md:1-394](file://docs/gateway/heartbeat.md#L1-L394)
 
 ## Dependency Analysis
-- HTTP endpoints depend on bearer authorization and rate limiting
-- WebSocket server depends on protocol validation and device authentication
-- Plugin SDK depends on channel adapters and runtime stores
-- RPC adapters depend on process management and JSON-RPC parsing
+- Gateway protocol schemas define the API surface consumed by clients and plugins.
+- Plugin SDK depends on channel adapters, runtime utilities, and webhook guards.
+- HTTP registry manages plugin route lifecycles and prevents conflicts.
 
 ```mermaid
 graph LR
-HTTP["HTTP Endpoint Helpers"] --> AUTH["Auth Helpers"]
-AUTH --> RATE["Auth Rate Limiter"]
-WS["WS Message Handler"] --> AUTH
-WS --> PROTO["Protocol Schemas"]
-SDK["Plugin SDK"] --> HTTP
-SDK --> WS
-SIGNAL["Signal RPC Client"] --> HTTP
-IMSG["iMessage RPC Client"] --> WS
+F["frames.ts"] --> S["schema.ts"]
+S --> P["protocol.md"]
+IDX["plugin-sdk/index.ts"] --> R["plugins/registry.ts"]
+IDX --> HR["plugins/http-registry.ts"]
+HR --> R
 ```
 
 **Diagram sources**
-- [http-endpoint-helpers.ts](file://src/gateway/http-endpoint-helpers.ts#L1-L48)
-- [http-auth-helpers.ts](file://src/gateway/http-auth-helpers.ts#L1-L30)
-- [auth-rate-limit.ts](file://src/gateway/auth-rate-limit.ts#L1-L117)
-- [server.ws-connection/message-handler.ts](file://src/gateway/server.ws-connection/message-handler.ts#L436-L478)
-- [protocol/index.ts](file://src/gateway/protocol/index.ts#L1-L673)
-- [index.ts](file://src/plugin-sdk/index.ts#L1-L812)
-- [signal/client.ts](file://src/signal/client.ts#L70-L107)
-- [client.ts](file://src/imessage/client.ts#L196-L255)
+- [frames.ts:1-165](file://src/gateway/protocol/schema/frames.ts#L1-L165)
+- [schema.ts:1-19](file://src/gateway/protocol/schema.ts#L1-L19)
+- [protocol.md:263-268](file://docs/gateway/protocol.md#L263-L268)
+- [index.ts:1-800](file://src/plugin-sdk/index.ts#L1-L800)
+- [registry.ts:413-461](file://src/plugins/registry.ts#L413-L461)
+- [http-registry.ts:76-92](file://src/plugins/http-registry.ts#L76-L92)
 
 **Section sources**
-- [http-endpoint-helpers.ts](file://src/gateway/http-endpoint-helpers.ts#L1-L48)
-- [auth-rate-limit.ts](file://src/gateway/auth-rate-limit.ts#L1-L117)
-- [protocol/index.ts](file://src/gateway/protocol/index.ts#L1-L673)
-- [index.ts](file://src/plugin-sdk/index.ts#L1-L812)
+- [frames.ts:1-165](file://src/gateway/protocol/schema/frames.ts#L1-L165)
+- [schema.ts:1-19](file://src/gateway/protocol/schema.ts#L1-L19)
+- [protocol.md:263-268](file://docs/gateway/protocol.md#L263-L268)
+- [index.ts:1-800](file://src/plugin-sdk/index.ts#L1-L800)
+- [registry.ts:413-461](file://src/plugins/registry.ts#L413-L461)
+- [http-registry.ts:76-92](file://src/plugins/http-registry.ts#L76-L92)
 
 ## Performance Considerations
-- HTTP body size limits prevent oversized payloads
-- WebSocket policy fields (maxPayload, maxBufferedBytes, tickIntervalMs) govern transport behavior
-- Rate limiting reduces brute-force authentication attempts
-- Protocol validation uses compiled AJV schemas for efficient request/response shape checking
+- Prefer isolated sessions and light context for heartbeats to reduce token usage.
+- Use cheaper models for periodic tasks; leverage streaming modes judiciously.
+- Optimize plugin HTTP route registration to avoid conflicts and redundant handlers.
+- Apply rate limiting and anomaly tracking for webhook endpoints.
 
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
-Common issues and resolutions:
-- Authentication failures
-  - Verify bearer token matches configured gateway token
-  - Review rate limit status and Retry-After header
-- Protocol mismatch
-  - Ensure min/max protocol align with server’s PROTOCOL_VERSION
-- Device authentication
-  - Always wait for connect.challenge and sign nonce
-  - Include device identity and signature; confirm timestamp freshness
-- RPC adapter errors
-  - For signal-cli: check health endpoint and SSE subscription
-  - For imsg: ensure process lifecycle is managed and JSON lines are valid
+- Protocol mismatch: ensure min/maxProtocol align with PROTOCOL_VERSION.
+- Auth failures: check details.code and recommendedNextStep; retry with device token if allowed.
+- Device auth migration: always wait for connect.challenge, sign with nonce, include device.nonce.
+- Deprecated HTTP handler: migrate to registerHttpRoute/registerPluginHttpRoute.
+- Heartbeat visibility: adjust channels.defaults.heartbeat.showOk/showAlerts/useIndicator.
 
 **Section sources**
-- [http-common.ts](file://src/gateway/http-common.ts#L36-L71)
-- [auth.ts](file://src/gateway/auth.ts#L448-L485)
-- [auth-rate-limit.ts](file://src/gateway/auth-rate-limit.ts#L1-L117)
-- [protocol.md](file://docs/gateway/protocol.md#L224-L249)
-- [rpc.md](file://docs/reference/rpc.md#L1-L44)
+- [protocol.md:191-209](file://docs/gateway/protocol.md#L191-L209)
+- [authentication.md:160-180](file://docs/gateway/authentication.md#L160-L180)
+- [heartbeat.md:257-288](file://docs/gateway/heartbeat.md#L257-L288)
+- [check-no-register-http-handler.mjs:1-38](file://scripts/check-no-register-http-handler.mjs#L1-L38)
 
 ## Conclusion
-OpenClaw’s public APIs provide a cohesive control plane via WebSocket and complementary HTTP endpoints, with robust authentication and rate limiting. Plugins integrate through a unified SDK, while RPC adapters support external CLI integrations. The protocol is versioned and validated, enabling reliable client implementations across diverse platforms.
+OpenClaw’s Gateway protocol and plugin SDK provide a robust foundation for operator control and extensibility. By following the documented patterns—secure device authentication, proper protocol versioning, structured HTTP/webhook routes, and careful performance tuning—you can build reliable integrations and maintain forwards compatibility.
 
 [No sources needed since this section summarizes without analyzing specific files]
 
 ## Appendices
 
-### HTTP API: Request/Response Schemas and Examples
-- Endpoint pattern: POST JSON only; path and method enforced
-- Body parsing with configurable max bytes
-- Standardized error responses with error type and message
-- Example request/response shapes are defined in protocol schemas
+### Protocol-Specific Examples
+- Connect request/response examples and node/operator profiles are documented in the Gateway protocol guide.
+- Device auth migration examples and error code mappings are provided for legacy clients.
 
 **Section sources**
-- [http-endpoint-helpers.ts](file://src/gateway/http-endpoint-helpers.ts#L1-L48)
-- [http-common.ts](file://src/gateway/http-common.ts#L36-L71)
-- [protocol/index.ts](file://src/gateway/protocol/index.ts#L1-L673)
+- [protocol.md:22-126](file://docs/gateway/protocol.md#L22-L126)
+- [protocol.md:231-256](file://docs/gateway/protocol.md#L231-L256)
 
-### WebSocket API: Frames and Events
-- Framing: request, response, event
-- Handshake: connect.challenge followed by connect
-- Roles/scopes: operator vs node; scopes gate method access
-- Device auth: nonce challenge and signature required
-- Versioning: protocol negotiation via min/max protocol
+### Security Considerations
+- Use TLS and optional certificate pinning for WS connections.
+- Enforce device identity and signature verification; rotate/revoke device tokens as needed.
+- Apply webhook body limits and rate limiting; enforce SSRF protections.
 
 **Section sources**
-- [protocol/schema/frames.ts](file://src/gateway/protocol/schema/frames.ts#L1-L164)
-- [protocol.md](file://docs/gateway/protocol.md#L1-L261)
-- [server.auth.default-token.suite.ts](file://src/gateway/server.auth.default-token.suite.ts#L301-L330)
+- [protocol.md:257-262](file://docs/gateway/protocol.md#L257-L262)
+- [authentication.md:123-139](file://docs/gateway/authentication.md#L123-L139)
+- [index.ts:470-491](file://src/plugin-sdk/index.ts#L470-L491)
 
-### Plugin SDK: Registration and Runtime
-- Register HTTP routes with explicit auth
-- Access logging, state directory resolution, and keyed async queues
-- Channel adapters and reply dispatchers
-
-**Section sources**
-- [index.ts](file://src/plugin-sdk/index.ts#L1-L812)
-- [plugin.md](file://docs/tools/plugin.md#L139-L144)
-
-### RPC Adapters: Protocols and Client Guidelines
-- signal-cli: HTTP daemon with JSON-RPC and SSE
-- imsg: stdio child process with line-delimited JSON-RPC
-- Client guidelines: lifecycle management, resilience, and stable identifiers
+### Rate Limiting and Quota Behavior
+- Model provider key rotation and retry behavior for rate-limit errors.
+- Webhook anomaly counters and fixed-window rate limiter utilities.
 
 **Section sources**
-- [rpc.md](file://docs/reference/rpc.md#L1-L44)
-- [signal/client.ts](file://src/signal/client.ts#L70-L107)
-- [client.ts](file://src/imessage/client.ts#L196-L255)
+- [authentication.md:123-139](file://docs/gateway/authentication.md#L123-L139)
+- [index.ts:480-491](file://src/plugin-sdk/index.ts#L480-L491)
 
-### Cross-Platform WebSocket Payload Samples
-- Swift/macOS test helpers demonstrate hello-ok payload and request frame parsing
-- Shared Swift bridge frames define response envelope structure
+### Versioning Information
+- PROTOCOL_VERSION is defined in protocol schema; clients negotiate via min/maxProtocol.
+- Protocol schema exports enumerate the full API surface.
 
 **Section sources**
-- [GatewayWebSocketTestSupport.swift](file://apps/macos/Tests/OpenClawIPCTests/GatewayWebSocketTestSupport.swift#L31-L71)
-- [GatewayNodeSessionTests.swift](file://apps/shared/OpenClawKit/Tests/OpenClawKitTests/GatewayNodeSessionTests.swift#L104-L152)
-- [BridgeFrames.swift](file://apps/shared/OpenClawKit/Sources/OpenClawKit/BridgeFrames.swift#L241-L261)
+- [protocol.md:191-199](file://docs/gateway/protocol.md#L191-L199)
+- [schema.ts:1-19](file://src/gateway/protocol/schema.ts#L1-L19)
+
+### Migration Guides and Backwards Compatibility
+- Replace registerHttpHandler with registerHttpRoute/registerPluginHttpRoute.
+- Device auth behavior changed to require connect.challenge; migration diagnostics included.
+- Heartbeat visibility and delivery flags provide backward-compatible toggles.
+
+**Section sources**
+- [check-no-register-http-handler.mjs:1-38](file://scripts/check-no-register-http-handler.mjs#L1-L38)
+- [protocol.md:231-256](file://docs/gateway/protocol.md#L231-L256)
+- [heartbeat.md:257-288](file://docs/gateway/heartbeat.md#L257-L288)
+
+### Common Use Cases and Client Implementation Guidelines
+- Operator control plane: status, sessions, models, config, agents, memory.
+- Node capability exposure: camera/screen/canvas/system.run with permissions.
+- Plugin tool registration: required vs optional; allowlisted per agent.
+- Webhook endpoints: secure, rate-limited, with body limits and anomaly tracking.
+
+**Section sources**
+- [routes.ts:17-334](file://src/cli/program/routes.ts#L17-L334)
+- [protocol.md:135-184](file://docs/gateway/protocol.md#L135-L184)
+- [agent-tools.md:1-100](file://docs/plugins/agent-tools.md#L1-L100)
+- [index.ts:470-491](file://src/plugin-sdk/index.ts#L470-L491)
+
+### Monitoring and Debugging Approaches
+- Use CLI routes for health/status and gateway status.
+- Inspect heartbeat visibility and alert delivery flags per channel.
+- Enable diagnostic events and webhook processed/received events for observability.
+
+**Section sources**
+- [routes.ts:17-334](file://src/cli/program/routes.ts#L17-L334)
+- [heartbeat.md:257-288](file://docs/gateway/heartbeat.md#L257-L288)
+- [index.ts:647-666](file://src/plugin-sdk/index.ts#L647-L666)

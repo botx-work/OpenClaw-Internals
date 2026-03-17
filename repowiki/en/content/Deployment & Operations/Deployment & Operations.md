@@ -5,16 +5,17 @@
 - [Dockerfile](file://Dockerfile)
 - [docker-compose.yml](file://docker-compose.yml)
 - [fly.toml](file://fly.toml)
+- [fly.private.toml](file://fly.private.toml)
 - [render.yaml](file://render.yaml)
-- [openclaw.podman.env](file://openclaw.podman.env)
-- [scripts/podman/openclaw.container.in](file://scripts/podman/openclaw.container.in)
-- [scripts/systemd/openclaw-auth-monitor.service](file://scripts/systemd/openclaw-auth-monitor.service)
-- [scripts/systemd/openclaw-auth-monitor.timer](file://scripts/systemd/openclaw-auth-monitor.timer)
-- [scripts/auth-monitor.sh](file://scripts/auth-monitor.sh)
-- [docs/install/docker.md](file://docs/install/docker.md)
-- [docs/install/fly.md](file://docs/install/fly.md)
-- [docs/install/render.mdx](file://docs/install/render.mdx)
-- [docs/install/podman.md](file://docs/install/podman.md)
+- [deployment.yaml](file://scripts/k8s/manifests/deployment.yaml)
+- [service.yaml](file://scripts/k8s/manifests/service.yaml)
+- [configmap.yaml](file://scripts/k8s/manifests/configmap.yaml)
+- [pvc.yaml](file://scripts/k8s/manifests/pvc.yaml)
+- [openclaw-auth-monitor.service](file://scripts/systemd/openclaw-auth-monitor.service)
+- [openclaw-auth-monitor.timer](file://scripts/systemd/openclaw-auth-monitor.timer)
+- [package.json](file://package.json)
+- [knip.config.ts](file://knip.config.ts)
+- [pnpm-workspace.yaml](file://pnpm-workspace.yaml)
 </cite>
 
 ## Table of Contents
@@ -30,331 +31,370 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document provides comprehensive deployment and operations guidance for OpenClaw in production environments. It covers containerization strategies, cloud platform deployments (Fly.io, Render), bare metal and Podman setups, monitoring and alerting, maintenance, scaling, capacity planning, backups, security hardening, and automation tooling. The goal is to enable reliable, observable, and maintainable operations across Docker, Kubernetes, cloud platforms, and bare metal installations.
+This document provides comprehensive deployment and operations guidance for OpenClaw across Docker, Kubernetes, Platform-as-a-Service (PaaS), and traditional installations. It covers production deployment patterns, scaling considerations, infrastructure requirements, monitoring and logging, backup strategies, maintenance tasks, CI/CD pipeline examples, automated provisioning, performance optimization, resource management, capacity planning, troubleshooting, health monitoring, incident response, and operational excellence with security hardening.
 
 ## Project Structure
-OpenClaw includes first-class deployment artifacts and documentation for multiple environments:
-- Container images and runtime: Dockerfile and multi-stage build
-- Docker Compose for local and containerized deployments
-- Cloud platform configurations for Fly.io and Render
-- Podman rootless deployment with systemd Quadlet
-- Operational tooling for authentication monitoring and alerts
-- Extensive installation and operations guides
+OpenClaw’s deployment assets are primarily defined by containerization and orchestration manifests:
+- Container image build and runtime behavior are defined in the Dockerfile and supporting scripts.
+- Orchestration manifests for Kubernetes are located under scripts/k8s/manifests/.
+- PaaS configurations exist for Fly.io and Render.
+- Compose-based local deployment is supported via docker-compose.yml.
+- Systemd timers/services support periodic auth monitoring on bare-metal systems.
 
 ```mermaid
 graph TB
-subgraph "Container Images"
+subgraph "Containerization"
 DF["Dockerfile"]
-IMG["Runtime Image"]
-end
-subgraph "Compose"
 DC["docker-compose.yml"]
-GW["openclaw-gateway"]
-CLI["openclaw-cli"]
 end
-subgraph "Cloud Platforms"
-FL["fly.toml"]
-RD["render.yaml"]
+subgraph "Orchestration"
+K8S_DEPLOY["deployment.yaml"]
+K8S_SVC["service.yaml"]
+K8S_CFG["configmap.yaml"]
+K8S_PVC["pvc.yaml"]
 end
-subgraph "Podman"
-ENV["openclaw.podman.env"]
-QUAD["openclaw.container.in"]
+subgraph "PaaS"
+FLY["fly.toml"]
+FLY_PRIV["fly.private.toml"]
+REN["render.yaml"]
 end
-DF --> IMG
-DC --> GW
-DC --> CLI
-FL --> IMG
-RD --> IMG
-ENV --> QUAD
+subgraph "Operations"
+SYS_SVC["openclaw-auth-monitor.service"]
+SYS_TIMER["openclaw-auth-monitor.timer"]
+end
+DF --> DC
+DF --> K8S_DEPLOY
+DF --> FLY
+DF --> REN
+K8S_DEPLOY --> K8S_SVC
+K8S_DEPLOY --> K8S_CFG
+K8S_DEPLOY --> K8S_PVC
+SYS_SVC --> SYS_TIMER
 ```
 
 **Diagram sources**
-- [Dockerfile](file://Dockerfile#L1-L231)
-- [docker-compose.yml](file://docker-compose.yml#L1-L77)
-- [fly.toml](file://fly.toml#L1-L35)
-- [render.yaml](file://render.yaml#L1-L22)
-- [openclaw.podman.env](file://openclaw.podman.env#L1-L25)
-- [scripts/podman/openclaw.container.in](file://scripts/podman/openclaw.container.in#L1-L29)
+- [Dockerfile:1-250](file://Dockerfile#L1-L250)
+- [docker-compose.yml:1-79](file://docker-compose.yml#L1-L79)
+- [deployment.yaml:1-147](file://scripts/k8s/manifests/deployment.yaml#L1-L147)
+- [service.yaml:1-16](file://scripts/k8s/manifests/service.yaml#L1-L16)
+- [configmap.yaml:1-39](file://scripts/k8s/manifests/configmap.yaml#L1-L39)
+- [pvc.yaml:1-13](file://scripts/k8s/manifests/pvc.yaml#L1-L13)
+- [fly.toml:1-35](file://fly.toml#L1-L35)
+- [fly.private.toml:1-40](file://fly.private.toml#L1-L40)
+- [render.yaml:1-22](file://render.yaml#L1-L22)
+- [openclaw-auth-monitor.service:1-15](file://scripts/systemd/openclaw-auth-monitor.service#L1-L15)
+- [openclaw-auth-monitor.timer:1-11](file://scripts/systemd/openclaw-auth-monitor.timer#L1-L11)
 
 **Section sources**
-- [Dockerfile](file://Dockerfile#L1-L231)
-- [docker-compose.yml](file://docker-compose.yml#L1-L77)
-- [fly.toml](file://fly.toml#L1-L35)
-- [render.yaml](file://render.yaml#L1-L22)
-- [openclaw.podman.env](file://openclaw.podman.env#L1-L25)
-- [scripts/podman/openclaw.container.in](file://scripts/podman/openclaw.container.in#L1-L29)
+- [Dockerfile:1-250](file://Dockerfile#L1-L250)
+- [docker-compose.yml:1-79](file://docker-compose.yml#L1-L79)
+- [deployment.yaml:1-147](file://scripts/k8s/manifests/deployment.yaml#L1-L147)
+- [service.yaml:1-16](file://scripts/k8s/manifests/service.yaml#L1-L16)
+- [configmap.yaml:1-39](file://scripts/k8s/manifests/configmap.yaml#L1-L39)
+- [pvc.yaml:1-13](file://scripts/k8s/manifests/pvc.yaml#L1-L13)
+- [fly.toml:1-35](file://fly.toml#L1-L35)
+- [fly.private.toml:1-40](file://fly.private.toml#L1-L40)
+- [render.yaml:1-22](file://render.yaml#L1-L22)
+- [openclaw-auth-monitor.service:1-15](file://scripts/systemd/openclaw-auth-monitor.service#L1-L15)
+- [openclaw-auth-monitor.timer:1-11](file://scripts/systemd/openclaw-auth-monitor.timer#L1-L11)
 
 ## Core Components
-- Container image: multi-stage build with Node.js base, optional system packages, Playwright browser, and Docker CLI for sandboxing
-- Gateway service: binds loopback by default with health probes; configurable bind/port/token for external access
-- CLI service: shares network with gateway, restricted capabilities, and TTY for interactive use
-- Cloud platform configs: Fly.io and Render Blueprints define persistent storage, secrets, and health checks
-- Podman rootless deployment: systemd Quadlet unit, environment-driven configuration, and optional sandbox support
-
-Key operational capabilities:
-- Health checks via /healthz and /readyz
-- Token-based authentication for non-loopback binds
-- Persistent state via mounted volumes
-- Optional sandboxing for tool execution isolation
+- Gateway runtime: Node.js-based server exposing health and readiness probes, configurable via environment variables and mounted configuration.
+- CLI entrypoint: Provides interactive and non-interactive operations, integrated into container images and compose stacks.
+- Extension and skill packaging: Extensions and skills are included in the runtime image for channel integrations.
+- Sandbox support: Optional Docker CLI installation enables agent sandboxing; optional Chromium installation optimizes browser automation startup.
+- Health and readiness: Built-in HTTP probes (/healthz, /readyz) facilitate container health checks and orchestrator integration.
 
 **Section sources**
-- [Dockerfile](file://Dockerfile#L224-L231)
-- [docker-compose.yml](file://docker-compose.yml#L28-L49)
-- [fly.toml](file://fly.toml#L17-L35)
-- [render.yaml](file://render.yaml#L6-L22)
-- [openclaw.podman.env](file://openclaw.podman.env#L6-L25)
+- [Dockerfile:243-249](file://Dockerfile#L243-L249)
+- [docker-compose.yml:24-50](file://docker-compose.yml#L24-L50)
+- [deployment.yaml:106-123](file://scripts/k8s/manifests/deployment.yaml#L106-L123)
 
 ## Architecture Overview
-OpenClaw supports several production-grade deployment patterns:
+OpenClaw supports multiple deployment topologies:
+- Docker single-container: Gateway plus optional CLI container sharing the same network.
+- Kubernetes: Stateless gateway managed by Deployment with ConfigMap-backed configuration and PVC-backed persistence.
+- PaaS: Fly.io and Render configurations define runtime behavior, environment variables, and storage mounts.
+- Bare metal: Systemd timer triggers periodic auth expiry monitoring script.
 
 ```mermaid
 graph TB
-subgraph "Docker Compose"
-DCGW["openclaw-gateway"]
-DCC["openclaw-cli"]
+subgraph "Docker"
+D_GW["Gateway Container"]
+D_CLI["CLI Container"]
+D_NET["Bridge Network"]
+D_GW --- D_NET
+D_CLI --- D_NET
 end
-subgraph "Fly.io"
-FIMG["Docker Image"]
-FVM["VM Instance"]
-FVOL["Volume /data"]
+subgraph "Kubernetes"
+K_DEP["Deployment"]
+K_SVC["Service"]
+K_CFG["ConfigMap"]
+K_PVC["PVC"]
+K_DEP --> K_SVC
+K_DEP --> K_CFG
+K_DEP --> K_PVC
 end
-subgraph "Render"
-RIMG["Docker Image"]
-RSVC["Web Service"]
-RDISK["Disk /data"]
+subgraph "PaaS"
+F_APP["Fly App"]
+R_APP["Render Web Service"]
+F_APP -. env/storage .-> F_APP
+R_APP -. env/storage .-> R_APP
 end
-subgraph "Podman Rootless"
-PENV["openclaw.podman.env"]
-PUNIT["openclaw.container.in"]
+subgraph "Bare Metal"
+S_SRV["Systemd Service"]
+S_TMR["Systemd Timer"]
+S_SRV --> S_TMR
 end
-DCGW --- DCC
-FIMG --> FVM
-FVM --> FVOL
-RIMG --> RSVC
-RSVC --> RDISK
-PENV --> PUNIT
 ```
 
 **Diagram sources**
-- [docker-compose.yml](file://docker-compose.yml#L2-L37)
-- [fly.toml](file://fly.toml#L7-L35)
-- [render.yaml](file://render.yaml#L1-L22)
-- [openclaw.podman.env](file://openclaw.podman.env#L1-L25)
-- [scripts/podman/openclaw.container.in](file://scripts/podman/openclaw.container.in#L1-L29)
+- [docker-compose.yml:1-79](file://docker-compose.yml#L1-L79)
+- [deployment.yaml:1-147](file://scripts/k8s/manifests/deployment.yaml#L1-L147)
+- [service.yaml:1-16](file://scripts/k8s/manifests/service.yaml#L1-L16)
+- [configmap.yaml:1-39](file://scripts/k8s/manifests/configmap.yaml#L1-L39)
+- [pvc.yaml:1-13](file://scripts/k8s/manifests/pvc.yaml#L1-L13)
+- [fly.toml:1-35](file://fly.toml#L1-L35)
+- [render.yaml:1-22](file://render.yaml#L1-L22)
+- [openclaw-auth-monitor.service:1-15](file://scripts/systemd/openclaw-auth-monitor.service#L1-L15)
+- [openclaw-auth-monitor.timer:1-11](file://scripts/systemd/openclaw-auth-monitor.timer#L1-L11)
 
 ## Detailed Component Analysis
 
 ### Docker Deployment
-- Build and runtime: multi-stage Dockerfile with Node.js base, optional system packages, Playwright, and Docker CLI for sandboxing
-- Compose stack: gateway and CLI services with shared network, health checks, and persistent mounts
-- Bind and token: default loopback bind; external access requires LAN bind and gateway token
-- Sandbox: optional Docker socket mounting and Docker CLI support for agent sandboxing
-
-Operational guidance:
-- Use OPENCLAW_GATEWAY_TOKEN for non-loopback binds
-- Persist state via bind mounts for config and workspace
-- Enable sandboxing with optional Docker socket and CLI support
-
-**Section sources**
-- [Dockerfile](file://Dockerfile#L12-L231)
-- [docker-compose.yml](file://docker-compose.yml#L1-L77)
-- [docs/install/docker.md](file://docs/install/docker.md#L26-L84)
-
-### Fly.io Deployment
-- Platform: VM-based with persistent volumes, automatic HTTPS, and health checks
-- Configuration: fly.toml defines build, env vars, process command, HTTP service, VM sizing, and mounts
-- Secrets: OPENCLAW_GATEWAY_TOKEN and provider tokens stored as Fly secrets
-- Private deployments: optional private-only IP with tunneling for webhooks
-
-Operational guidance:
-- Set OPENCLAW_STATE_DIR to /data and mount a volume
-- Use --bind lan and OPENCLAW_GATEWAY_TOKEN for external access
-- Scale vertically; horizontal scaling requires sticky sessions or external state
-
-**Section sources**
-- [fly.toml](file://fly.toml#L1-L35)
-- [docs/install/fly.md](file://docs/install/fly.md#L14-L120)
-
-### Render Deployment
-- Platform: Infrastructure as Code via render.yaml Blueprint
-- Configuration: runtime docker, health check path, env vars, and persistent disk
-- Plans: Free (no persistent disk), Starter (persistent disk), Standard+ (horizontal scaling)
-- Post-deploy: setup wizard, Control UI, logs, and shell access
-
-Operational guidance:
-- Ensure PORT aligns with container exposure
-- Use Starter plan for persistent disk and state continuity
-- Export configuration via /setup/export for backups
-
-**Section sources**
-- [render.yaml](file://render.yaml#L1-L22)
-- [docs/install/render.mdx](file://docs/install/render.mdx#L1-L160)
-
-### Podman Rootless Deployment
-- Setup: one-time setup script creates user, builds image, and installs launch script
-- Quadlet: optional systemd user service for auto-start and restarts
-- Environment: OPENCLAW_GATEWAY_TOKEN and provider keys via environment file
-- Storage: bind mounts for config and workspace; sandbox tmpfs ephemeral
-
-Operational guidance:
-- Use dedicated openclaw user with subuid/subgid ranges
-- Adjust host ports and gateway bind via environment variables
-- Monitor logs via journalctl for Quadlet or podman logs for script-based runs
-
-**Section sources**
-- [openclaw.podman.env](file://openclaw.podman.env#L1-L25)
-- [scripts/podman/openclaw.container.in](file://scripts/podman/openclaw.container.in#L1-L29)
-- [docs/install/podman.md](file://docs/install/podman.md#L1-L123)
-
-### Monitoring, Logging, and Alerting
-- Built-in health probes: /healthz (liveness) and /readyz (readiness) with Docker HEALTHCHECK
-- Cloud platform monitoring: Fly.io and Render provide logs and dashboards
-- Authentication expiry monitoring: systemd service and timer with periodic checks and notifications
+- Image build: Multi-stage build with extension dependency extraction, Node.js base image pinning, and slim variant support.
+- Runtime image: Non-root user, health checks, and optional additions (Chromium, Docker CLI).
+- Compose stack: Gateway and CLI containers with shared volumes, environment propagation, and health checks.
 
 ```mermaid
 sequenceDiagram
-participant Timer as "Systemd Timer"
-participant Service as "Auth Monitor Service"
-participant Script as "auth-monitor.sh"
-participant Notify as "Notification Channels"
-Timer->>Service : "OnBootSec / OnUnitActiveSec"
-Service->>Script : "Execute"
-Script->>Script : "Check Claude credentials and expiry"
-alt "Expired"
-Script->>Notify : "Send urgent alert"
-else "Expiring Soon"
-Script->>Notify : "Send high alert"
-else "OK"
-Script->>Notify : "Log OK status"
-end
+participant Dev as "Developer"
+participant Docker as "Docker Engine"
+participant Image as "Runtime Image"
+participant C_GW as "Gateway Container"
+participant C_CLI as "CLI Container"
+Dev->>Docker : Build image (Dockerfile)
+Docker->>Image : Multi-stage build + cache layers
+Dev->>Docker : docker-compose up
+Docker->>C_GW : Start gateway (HEALTHCHECK enabled)
+Docker->>C_CLI : Start CLI (shares network)
+C_GW-->>Dev : /healthz and /readyz
 ```
 
 **Diagram sources**
-- [scripts/systemd/openclaw-auth-monitor.timer](file://scripts/systemd/openclaw-auth-monitor.timer#L1-L11)
-- [scripts/systemd/openclaw-auth-monitor.service](file://scripts/systemd/openclaw-auth-monitor.service#L1-L15)
-- [scripts/auth-monitor.sh](file://scripts/auth-monitor.sh#L1-L90)
+- [Dockerfile:1-250](file://Dockerfile#L1-L250)
+- [docker-compose.yml:1-79](file://docker-compose.yml#L1-L79)
 
 **Section sources**
-- [Dockerfile](file://Dockerfile#L224-L231)
-- [scripts/systemd/openclaw-auth-monitor.service](file://scripts/systemd/openclaw-auth-monitor.service#L1-L15)
-- [scripts/systemd/openclaw-auth-monitor.timer](file://scripts/systemd/openclaw-auth-monitor.timer#L1-L11)
-- [scripts/auth-monitor.sh](file://scripts/auth-monitor.sh#L1-L90)
+- [Dockerfile:1-250](file://Dockerfile#L1-L250)
+- [docker-compose.yml:1-79](file://docker-compose.yml#L1-L79)
 
-### Maintenance Procedures
-- Apply updates by redeploying with new images or rebuilding locally
-- Rotate tokens and secrets via platform-specific secret managers
-- Backup configuration and workspace via export endpoints or persistent disk snapshots
-- Prune sandbox containers and manage disk growth hotspots
+### Kubernetes Deployment
+- Deployment: Single-replica stateless gateway with init container to seed configuration and agent defaults.
+- Probes: Liveness and readiness probes against built-in endpoints.
+- Storage: PersistentVolumeClaim for state and workspace; ConfigMap for initial configuration.
+- Security: Non-root user, read-only root filesystem, dropped capabilities, seccomp default profile.
 
-**Section sources**
-- [docs/install/fly.md](file://docs/install/fly.md#L328-L358)
-- [docs/install/render.mdx](file://docs/install/render.mdx#L126-L135)
+```mermaid
+flowchart TD
+Start(["Apply Manifests"]) --> CM["Create ConfigMap<br/>openclaw.json + AGENTS.md"]
+Start --> PVC["Create PVC<br/>10Gi RWO"]
+Start --> Deploy["Deploy Gateway Pod"]
+Deploy --> Init["Init Container<br/>copy config to /home/node/.openclaw"]
+Deploy --> GW["Gateway Container<br/>Probes + Env + Mounts"]
+GW --> Ready{"Ready?"}
+Ready --> |Yes| Serve["Serve /healthz and /readyz"]
+Ready --> |No| Retry["Retry until ready"]
+```
 
-### Disaster Recovery
-- Restore from exported configuration and workspace backups
-- Recreate persistent volumes and re-attach to new instances
-- Rehydrate state from Fly.io or Render disks as applicable
-
-**Section sources**
-- [docs/install/render.mdx](file://docs/install/render.mdx#L126-L135)
-- [docs/install/fly.md](file://docs/install/fly.md#L322-L327)
-
-### Performance Optimization, Scaling, and Capacity Planning
-- Memory sizing: 2GB recommended for production stability
-- Vertical scaling: increase VM/memory on Fly.io or upgrade Render plan
-- Horizontal scaling: consider sticky sessions or external state for multiple replicas
-- Disk planning: monitor media, sessions, transcripts, and logs; provision adequate volume sizes
+**Diagram sources**
+- [deployment.yaml:1-147](file://scripts/k8s/manifests/deployment.yaml#L1-L147)
+- [configmap.yaml:1-39](file://scripts/k8s/manifests/configmap.yaml#L1-L39)
+- [pvc.yaml:1-13](file://scripts/k8s/manifests/pvc.yaml#L1-L13)
 
 **Section sources**
-- [docs/install/fly.md](file://docs/install/fly.md#L259-L277)
-- [docs/install/render.mdx](file://docs/install/render.mdx#L117-L125)
+- [deployment.yaml:1-147](file://scripts/k8s/manifests/deployment.yaml#L1-L147)
+- [service.yaml:1-16](file://scripts/k8s/manifests/service.yaml#L1-L16)
+- [configmap.yaml:1-39](file://scripts/k8s/manifests/configmap.yaml#L1-L39)
+- [pvc.yaml:1-13](file://scripts/k8s/manifests/pvc.yaml#L1-L13)
 
-### Security Hardening and Compliance
-- Non-root execution: container runs as non-root user to reduce attack surface
-- Capability drops and no-new-privileges: compose CLI service restricts capabilities
-- Token-based access: require OPENCLAW_GATEWAY_TOKEN for non-loopback binds
-- Private deployments: Fly.io private-only IP with tunneling for webhooks
-- Secrets management: store tokens as platform secrets; avoid embedding in config files
+### PaaS Deployment (Fly.io)
+- Public ingress: Standard http_service with forced HTTPS and minimum machine count.
+- Private ingress: fly.private.toml disables public ingress; access via fly proxy, WireGuard, or SSH.
+- Storage: Volume mount for persistent state.
+
+```mermaid
+sequenceDiagram
+participant Ops as "Operator"
+participant Fly as "Fly.io"
+participant VM as "VM Instance"
+participant GW as "Gateway Process"
+Ops->>Fly : Deploy with fly.toml
+Fly->>VM : Provision VM (shared-cpu-2x, 2GB)
+Fly->>VM : Mount /data
+VM->>GW : Start gateway (lan bind, port 3000)
+GW-->>Ops : /health endpoint reachable via proxy/WireGuard
+```
+
+**Diagram sources**
+- [fly.toml:1-35](file://fly.toml#L1-L35)
+- [fly.private.toml:1-40](file://fly.private.toml#L1-L40)
 
 **Section sources**
-- [Dockerfile](file://Dockerfile#L211-L214)
-- [docker-compose.yml](file://docker-compose.yml#L54-L58)
-- [docs/install/fly.md](file://docs/install/fly.md#L359-L474)
+- [fly.toml:1-35](file://fly.toml#L1-L35)
+- [fly.private.toml:1-40](file://fly.private.toml#L1-L40)
 
-### Automation Scripts and Operational Tooling
-- Auth expiry monitoring: systemd timer and service with notification channels
-- Podman rootless setup: environment-driven configuration and Quadlet unit
-- Docker Compose: streamlined onboarding and gateway lifecycle management
+### PaaS Deployment (Render)
+- Web service runtime with Docker, health check path, environment variables, and ephemeral disk mount.
 
 **Section sources**
-- [scripts/systemd/openclaw-auth-monitor.service](file://scripts/systemd/openclaw-auth-monitor.service#L1-L15)
-- [scripts/systemd/openclaw-auth-monitor.timer](file://scripts/systemd/openclaw-auth-monitor.timer#L1-L11)
-- [scripts/auth-monitor.sh](file://scripts/auth-monitor.sh#L1-L90)
-- [openclaw.podman.env](file://openclaw.podman.env#L1-L25)
-- [scripts/podman/openclaw.container.in](file://scripts/podman/openclaw.container.in#L1-L29)
+- [render.yaml:1-22](file://render.yaml#L1-L22)
+
+### Bare Metal Operations (Systemd)
+- One-shot service runs an auth expiry monitor script on a schedule.
+- Environment variables configure warning thresholds and optional notifications.
+
+**Section sources**
+- [openclaw-auth-monitor.service:1-15](file://scripts/systemd/openclaw-auth-monitor.service#L1-L15)
+- [openclaw-auth-monitor.timer:1-11](file://scripts/systemd/openclaw-auth-monitor.timer#L1-L11)
 
 ## Dependency Analysis
-OpenClaw’s deployment stack exhibits clear separation of concerns:
-- Container image encapsulates runtime, dependencies, and optional tooling
-- Compose orchestrates gateway and CLI with health checks and persistence
-- Cloud platform configs define compute, storage, and networking policies
-- Podman rootless deployment leverages systemd and environment files
+- Build-time dependencies: Node.js toolchain, Bun bootstrap, pnpm lockfile, and optional extension metadata.
+- Runtime dependencies: Channel SDKs, model providers, and optional browser automation libraries.
+- Workspace configuration: pnpm workspace and onlyBuiltDependencies define monorepo boundaries and native module handling.
 
 ```mermaid
 graph LR
-DF["Dockerfile"] --> IMG["Runtime Image"]
-IMG --> DC["docker-compose.yml"]
-IMG --> FL["fly.toml"]
-IMG --> RD["render.yaml"]
-ENV["openclaw.podman.env"] --> QUAD["openclaw.container.in"]
+PJSON["package.json"]
+WSPC["pnpm-workspace.yaml"]
+KNIPT["knip.config.ts"]
+PJSON --> WSPC
+PJSON --> KNIPT
+WSPC --> KNIPT
 ```
 
 **Diagram sources**
-- [Dockerfile](file://Dockerfile#L1-L231)
-- [docker-compose.yml](file://docker-compose.yml#L1-L77)
-- [fly.toml](file://fly.toml#L1-L35)
-- [render.yaml](file://render.yaml#L1-L22)
-- [openclaw.podman.env](file://openclaw.podman.env#L1-L25)
-- [scripts/podman/openclaw.container.in](file://scripts/podman/openclaw.container.in#L1-L29)
+- [package.json:1-481](file://package.json#L1-L481)
+- [pnpm-workspace.yaml:1-18](file://pnpm-workspace.yaml#L1-L18)
+- [knip.config.ts:1-106](file://knip.config.ts#L1-L106)
 
 **Section sources**
-- [Dockerfile](file://Dockerfile#L1-L231)
-- [docker-compose.yml](file://docker-compose.yml#L1-L77)
-- [fly.toml](file://fly.toml#L1-L35)
-- [render.yaml](file://render.yaml#L1-L22)
-- [openclaw.podman.env](file://openclaw.podman.env#L1-L25)
-- [scripts/podman/openclaw.container.in](file://scripts/podman/openclaw.container.in#L1-L29)
+- [package.json:1-481](file://package.json#L1-L481)
+- [pnpm-workspace.yaml:1-18](file://pnpm-workspace.yaml#L1-L18)
+- [knip.config.ts:1-106](file://knip.config.ts#L1-L106)
 
 ## Performance Considerations
-- Prefer 2GB+ memory for production stability; adjust based on concurrent agents and channels
-- Persist state to volumes to avoid repeated initialization overhead
-- Use Fly.io or Render persistent disks to prevent data loss and improve reliability
-- Monitor disk growth hotspots and provision adequate storage
-
-[No sources needed since this section provides general guidance]
-
-## Troubleshooting Guide
-Common issues and resolutions:
-- Health checks failing: verify internal_port matches gateway port and bind mode
-- Memory issues: increase VM/memory or container resources
-- Gateway lock issues: delete lock file on persistent disk and restart
-- Config not being read: confirm OPENCLAW_STATE_DIR and file existence
-- Sandbox setup: ensure Docker CLI is installed in image and socket permissions are correct
-- Podman rootless: verify subuid/subgid ranges and Quadlet cgroups v2 support
+- Memory tuning: NODE_OPTIONS and Fly/Render memory settings reduce GC pressure on constrained hosts.
+- Startup optimization: Pre-installing Chromium avoids runtime downloads; Docker CLI enables sandbox container reuse.
+- Resource requests/limits: Kubernetes Deployment defines baseline CPU and memory allocations.
+- Image variants: slim base image reduces footprint; default image includes extra utilities.
 
 **Section sources**
-- [docs/install/fly.md](file://docs/install/fly.md#L245-L327)
-- [docs/install/docker.md](file://docs/install/docker.md#L469-L538)
-- [docs/install/podman.md](file://docs/install/podman.md#L111-L123)
+- [Dockerfile:166-222](file://Dockerfile#L166-L222)
+- [deployment.yaml:99-105](file://scripts/k8s/manifests/deployment.yaml#L99-L105)
+- [fly.toml:10-16](file://fly.toml#L10-L16)
+- [render.yaml:8-16](file://render.yaml#L8-L16)
+
+## Troubleshooting Guide
+- Health endpoints: Use /healthz (liveness) and /readyz (readiness) to diagnose container status.
+- Compose troubleshooting: Verify port bindings and environment propagation; confirm init container copied configuration.
+- Kubernetes troubleshooting: Check init container logs for config copy errors; review liveness/readiness probe outcomes; validate PVC availability.
+- PaaS troubleshooting: Confirm http_service settings and private ingress configuration; verify mount paths and environment variables.
+- Auth expiry monitoring: Ensure systemd timer is enabled and service executes without errors.
+
+```mermaid
+flowchart TD
+A["Symptom: Gateway unhealthy"] --> B{"Probe fails?"}
+B --> |Yes| C["Check /healthz and /readyz"]
+B --> |No| D{"Traffic not reaching gateway?"}
+D --> |Yes| E["Verify network mode/port mapping"]
+D --> |No| F["Check firewall and ingress"]
+C --> G["Review container logs"]
+E --> H["Adjust compose/K8s port/bind settings"]
+F --> I["Fix ingress or tunnel"]
+G --> J["Resolve runtime errors"]
+```
+
+**Diagram sources**
+- [Dockerfile:243-249](file://Dockerfile#L243-L249)
+- [docker-compose.yml:39-50](file://docker-compose.yml#L39-L50)
+- [deployment.yaml:106-123](file://scripts/k8s/manifests/deployment.yaml#L106-L123)
+
+**Section sources**
+- [Dockerfile:243-249](file://Dockerfile#L243-L249)
+- [docker-compose.yml:39-50](file://docker-compose.yml#L39-L50)
+- [deployment.yaml:106-123](file://scripts/k8s/manifests/deployment.yaml#L106-L123)
 
 ## Conclusion
-OpenClaw offers flexible, production-ready deployment options across Docker, cloud platforms, and Podman rootless environments. With robust health checks, token-based authentication, persistent storage, and operational tooling, teams can achieve reliable, observable, and maintainable operations. Follow the environment-specific guides, harden security posture, plan capacity carefully, and leverage automation scripts for efficient management.
-
-[No sources needed since this section summarizes without analyzing specific files]
+OpenClaw offers flexible deployment options tailored to different environments. Container-first design with health probes, robust configuration via ConfigMaps and environment variables, and optional sandboxing enable secure, scalable operations. Production-grade guidance emphasizes resource planning, persistent storage, monitoring, and security hardening across Docker, Kubernetes, PaaS, and bare-metal setups.
 
 ## Appendices
-- Backup and restore: use export endpoints or persistent disk snapshots
-- Runbooks: refer to environment-specific guides for onboarding, updates, and maintenance
-- Compliance: store secrets securely, avoid exposing tokens, and use private deployments when required
 
-[No sources needed since this section provides general guidance]
+### Production Deployment Patterns
+- Kubernetes: Use Deployment with ConfigMap for configuration and PVC for state; enable probes and non-root security posture.
+- Docker: Use docker-compose for staging; validate health endpoints and environment propagation.
+- PaaS: Choose public ingress for exposed gateways or private ingress for hidden deployments; ensure persistent storage mounts.
+- Bare metal: Automate auth expiry checks with systemd timers.
+
+**Section sources**
+- [deployment.yaml:1-147](file://scripts/k8s/manifests/deployment.yaml#L1-L147)
+- [docker-compose.yml:1-79](file://docker-compose.yml#L1-L79)
+- [fly.toml:1-35](file://fly.toml#L1-L35)
+- [fly.private.toml:1-40](file://fly.private.toml#L1-L40)
+- [openclaw-auth-monitor.service:1-15](file://scripts/systemd/openclaw-auth-monitor.service#L1-L15)
+- [openclaw-auth-monitor.timer:1-11](file://scripts/systemd/openclaw-auth-monitor.timer#L1-L11)
+
+### Scaling Considerations
+- Horizontal scaling: Stateless gateway replicas scale horizontally; ensure shared state is persisted externally (e.g., PVC or object storage).
+- Vertical scaling: Increase CPU/memory requests/limits in Kubernetes; adjust Fly/Render VM sizes accordingly.
+- Concurrency: Tune model provider rate limits and worker pools via environment variables.
+
+**Section sources**
+- [deployment.yaml:8-13](file://scripts/k8s/manifests/deployment.yaml#L8-L13)
+- [fly.toml:28-31](file://fly.toml#L28-L31)
+- [render.yaml:4-6](file://render.yaml#L4-L6)
+
+### Infrastructure Requirements
+- Compute: Minimum shared-cpu-2x on Fly/Render; adjust based on workload.
+- Storage: 10Gi PVC for state and workspace; Render disk size configurable.
+- Networking: Public ingress for exposed deployments; private ingress for hidden deployments.
+
+**Section sources**
+- [fly.toml:28-35](file://fly.toml#L28-L35)
+- [render.yaml:18-22](file://render.yaml#L18-L22)
+- [pvc.yaml:7-13](file://scripts/k8s/manifests/pvc.yaml#L7-L13)
+
+### Monitoring, Logging, Backup, Maintenance
+- Monitoring: Use built-in /healthz and /readyz; integrate with platform-specific dashboards.
+- Logging: Capture container stdout/stderr; forward to centralized logging systems.
+- Backup: Persist state directory to PVC or external storage; snapshot periodically.
+- Maintenance: Rotate secrets, update images, and reconcile configuration via ConfigMaps.
+
+**Section sources**
+- [Dockerfile:243-249](file://Dockerfile#L243-L249)
+- [deployment.yaml:106-123](file://scripts/k8s/manifests/deployment.yaml#L106-L123)
+- [configmap.yaml:8-34](file://scripts/k8s/manifests/configmap.yaml#L8-L34)
+- [pvc.yaml:7-13](file://scripts/k8s/manifests/pvc.yaml#L7-L13)
+
+### CI/CD Pipelines and Automated Provisioning
+- Build: Multi-stage Dockerfile with extension dependency extraction and caching.
+- Test: Comprehensive test suites and Docker-based smoke tests.
+- Provision: Kubernetes manifests applied via kubectl or GitOps; PaaS deployments via fly and Render tooling.
+
+**Section sources**
+- [Dockerfile:27-95](file://Dockerfile#L27-L95)
+- [package.json:307-320](file://package.json#L307-L320)
+- [deployment.yaml:1-147](file://scripts/k8s/manifests/deployment.yaml#L1-L147)
+- [fly.toml:7-8](file://fly.toml#L7-L8)
+- [render.yaml:2-5](file://render.yaml#L2-L5)
+
+### Security Hardening
+- Non-root execution, dropped capabilities, read-only root filesystem, and seccomp default profile in Kubernetes.
+- Optional Chromium and Docker CLI installation controlled via build args.
+- Token-based authentication and optional private ingress on PaaS.
+
+**Section sources**
+- [Dockerfile:230-233](file://Dockerfile#L230-L233)
+- [Dockerfile:166-222](file://Dockerfile#L166-L222)
+- [deployment.yaml:129-138](file://scripts/k8s/manifests/deployment.yaml#L129-L138)
+- [fly.private.toml:27-31](file://fly.private.toml#L27-L31)

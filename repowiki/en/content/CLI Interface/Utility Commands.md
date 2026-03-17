@@ -2,74 +2,15 @@
 
 <cite>
 **Referenced Files in This Document**
-- [src/cli/skills-cli.ts](file://src/cli/skills-cli.ts)
-- [src/cli/memory-cli.ts](file://src/cli/memory-cli.ts)
-- [src/cli/models-cli.ts](file://src/cli/models-cli.ts)
-- [src/cli/sandbox-cli.ts](file://src/cli/sandbox-cli.ts)
-- [src/cli/cron-cli.ts](file://src/cli/cron-cli.ts)
-- [src/cli/hooks-cli.ts](file://src/cli/hooks-cli.ts)
-- [src/commands/models.ts](file://src/commands/models.ts)
-- [src/commands/sandbox.ts](file://src/commands/sandbox.ts)
-- [src/memory/backend-config.ts](file://src/memory/backend-config.ts)
-- [src/memory/batch-runner.ts](file://src/memory/batch-runner.ts)
-- [src/memory/batch-upload.ts](file://src/memory/batch-upload.ts)
-- [src/memory/batch-output.ts](file://src/memory/batch-output.ts)
-- [src/cron/delivery.ts](file://src/cron/delivery.ts)
-- [src/cron/heartbeat-policy.ts](file://src/cron/heartbeat-policy.ts)
-- [src/hooks/hooks.ts](file://src/hooks/hooks.ts)
-- [src/hooks/gmail.ts](file://src/hooks/gmail.ts)
-- [src/hooks/gmail-setup-utils.ts](file://src/hooks/gmail-setup-utils.ts)
-- [src/hooks/config.ts](file://src/hooks/config.ts)
-- [src/hooks/install.ts](file://src/hooks/install.ts)
-- [src/hooks/status.ts](file://src/hooks/status.ts)
-- [src/hooks/import-url.ts](file://src/hooks/import-url.ts)
-- [src/hooks/frontmatter.ts](file://src/hooks/frontmatter.ts)
-- [src/hooks/bundled-dir.ts](file://src/hooks/bundled-dir.ts)
-- [src/hooks/gmail-watcher.ts](file://src/hooks/gmail-watcher.ts)
-- [src/hooks/gmail-watcher-lifecycle.ts](file://src/hooks/gmail-watcher-lifecycle.ts)
-- [src/hooks/gmail-ops.ts](file://src/hooks/gmail-ops.ts)
-- [src/hooks/fire-and-forget.ts](file://src/hooks/fire-and-forget.ts)
-- [src/hooks/gmail.test.ts](file://src/hooks/gmail.test.ts)
-- [src/hooks/gmail-setup-utils.test.ts](file://src/hooks/gmail-setup-utils.test.ts)
-- [src/hooks/gmail-watcher.test.ts](file://src/hooks/gmail-watcher.test.ts)
-- [src/hooks/gmail-watcher-lifecycle.test.ts](file://src/hooks/gmail-watcher-lifecycle.test.ts)
-- [src/hooks/hooks-install.test.ts](file://src/hooks/hooks-install.test.ts)
-- [src/hooks/install.test.ts](file://src/hooks/install.test.ts)
-- [src/hooks/status.test.ts](file://src/hooks/status.test.ts)
-- [src/hooks/frontmatter.test.ts](file://src/hooks/frontmatter.test.ts)
-- [src/hooks/bundled-dir.test.ts](file://src/hooks/bundled-dir.test.ts)
-- [src/hooks/gmail-ops.test.ts](file://src/hooks/gmail-ops.test.ts)
-- [src/hooks/fire-and-forget.test.ts](file://src/hooks/fire-and-forget.test.ts)
-- [src/hooks/hooks-status.ts](file://src/hooks/hooks-status.ts)
-- [src/hooks/gmail-watchers.ts](file://src/hooks/gmail-watchers.ts)
-- [src/hooks/gmail-watchers.test.ts](file://src/hooks/gmail-watchers.test.ts)
-- [src/hooks/gmail-watchers-lifecycle.test.ts](file://src/hooks/gmail-watchers-lifecycle.test.ts)
-- [src/hooks/gmail-watchers-lifecycle.ts](file://src/hooks/gmail-watchers-lifecycle.ts)
-- [src/hooks/gmail-watchers-setup.test.ts](file://src/hooks/gmail-watchers-setup.test.ts)
-- [src/hooks/gmail-watchers-setup.ts](file://src/hooks/gmail-watchers-setup.ts)
-- [src/hooks/gmail-watchers-ops.test.ts](file://src/hooks/gmail-watchers-ops.test.ts)
-- [src/hooks/gmail-watchers-ops.ts](file://src/hooks/gmail-watchers-ops.ts)
-- [src/hooks/gmail-watchers-ops.ts](file://src/hooks/gmail-watchers-ops.ts)
-- [src/hooks/gmail-watchers-ops.test.ts](file://src/hooks/gmail-watchers-ops.test.ts)
-- [src/hooks/gmail-watchers-ops.ts](file://src/hooks/gmail-watchers-ops.ts)
-- [src/hooks/gmail-watchers-ops.test.ts](file://src/hooks/gmail-watchers-ops.test.ts)
-- [src/hooks/gmail-watchers-ops.ts](file://src/hooks/gmail-watchers-ops.ts)
-- [src/hooks/gmail-watchers-ops.test.ts](file://src/hooks/gmail-watchers-ops.test.ts)
-- [src/hooks/gmail-watchers-ops.ts](file://src/hooks/gmail-watchers-ops.ts)
-- [src/hooks/gmail-watchers-ops.test.ts](file://src/hooks/gmail-watchers-ops.test.ts)
-- [src/hooks/gmail-watchers-ops.ts](file://src/hooks/gmail-watchers-ops.ts)
-- [src/hooks/gmail-watchers-ops.test.ts](file://src/hooks/gmail-watchers-ops.test.ts)
-- [src/hooks/gmail-watchers-ops.ts](file://src/hooks/gmail-watchers-ops.ts)
-- [src/hooks/gmail-watchers-ops.test.ts](file://src/hooks/gmail-watchers-ops.test.ts)
-- [src/hooks/gmail-watchers-ops.ts](file://src/hooks/gmail-watchers-ops.ts)
-- [src/hooks/gmail-watchers-ops.test.ts](file://src/hooks/gmail-watchers-ops.test.ts)
-- [src/hooks/gmail-watchers-ops.ts](file://src/hooks/gmail-watchers-ops.ts)
-- [src/hooks/gmail-watchers-ops.test.ts](file://src/hooks/gmail-watchers-ops.test.ts)
-- [src/hooks/gmail-watchers-ops.ts](file://src/hooks/gmail-watchers-ops.ts)
-- [src/hooks/gmail-watchers-ops.test.ts](file://src/hooks/gmail-watchers-ops.test.ts)
-- [src/hooks/gmail-watchers-ops.ts](file://src/hooks/gmail-watchers-ops.ts)
-- [src/hooks/gmail-watchers-ops.test.ts](file://src/hooks/gmail-watchers-ops.test.ts)
-......
+- [completion-cli.ts](file://src/cli/completion-cli.ts)
+- [completion-fish.ts](file://src/cli/completion-fish.ts)
+- [sandbox-cli.ts](file://src/cli/sandbox-cli.ts)
+- [sandbox.ts](file://src/commands/sandbox.ts)
+- [sandbox-explain.ts](file://src/commands/sandbox-explain.ts)
+- [memory-cli.ts](file://src/cli/memory-cli.ts)
+- [completion.md](file://docs/cli/completion.md)
+- [sandbox.md](file://docs/cli/sandbox.md)
+- [memory.md](file://docs/cli/memory.md)
 </cite>
 
 ## Table of Contents
@@ -85,409 +26,314 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document explains the utility commands that power day-to-day operations: skills, memory, models, sandbox, cron, and hooks. It covers workflows, integration patterns, and troubleshooting, with practical examples for memory indexing, model selection, sandbox configuration, and cron job management. The goal is to make these utilities approachable while remaining precise for both new and experienced users.
+This document focuses on OpenClaw utility commands that assist with developer ergonomics, environment hygiene, and operational visibility. It covers:
+- Shell completion generation and installation
+- Memory search and indexing management
+- Sandbox runtime inspection and maintenance
+
+It explains command usage, configuration options, integration with other OpenClaw components, and provides practical examples, troubleshooting tips, and best practices.
 
 ## Project Structure
-Utility commands are exposed via CLI entry points and implemented in dedicated command modules. Each utility area has its own CLI module and a corresponding command module that encapsulates the logic.
+The utility commands are implemented as CLI subcommands registered in the main program. Each command module encapsulates:
+- Command registration and help formatting
+- Option parsing and validation
+- Integration with core subsystems (e.g., memory managers, sandbox backends)
+- Output formatting and JSON support
 
 ```mermaid
 graph TB
 subgraph "CLI Layer"
-SK["skills-cli.ts"]
-ME["memory-cli.ts"]
-MO["models-cli.ts"]
-SA["sandbox-cli.ts"]
-CR["cron-cli.ts"]
-HO["hooks-cli.ts"]
+C["completion-cli.ts"]
+S["sandbox-cli.ts"]
+M["memory-cli.ts"]
 end
-subgraph "Command Modules"
-CMDSK["commands/skills.ts"]
-CMDSM["commands/memory.ts"]
-CMDMO["commands/models.ts"]
-CMDSA["commands/sandbox.ts"]
-CMDCR["commands/cron.ts"]
-CMDHO["commands/hooks.ts"]
+subgraph "Command Implementations"
+SC["sandbox.ts"]
+SE["sandbox-explain.ts"]
 end
-SK --> CMDSK
-ME --> CMDSM
-MO --> CMDMO
-SA --> CMDSA
-CR --> CMDCR
-HO --> CMDHO
+subgraph "Shared Utilities"
+CF["completion-fish.ts"]
+end
+C --> CF
+S --> SC
+S --> SE
+M --> |"uses"| M
 ```
 
 **Diagram sources**
-- [src/cli/skills-cli.ts](file://src/cli/skills-cli.ts)
-- [src/cli/memory-cli.ts](file://src/cli/memory-cli.ts)
-- [src/cli/models-cli.ts](file://src/cli/models-cli.ts)
-- [src/cli/sandbox-cli.ts](file://src/cli/sandbox-cli.ts)
-- [src/cli/cron-cli.ts](file://src/cli/cron-cli.ts)
-- [src/cli/hooks-cli.ts](file://src/cli/hooks-cli.ts)
-- [src/commands/models.ts](file://src/commands/models.ts)
-- [src/commands/sandbox.ts](file://src/commands/sandbox.ts)
+- [completion-cli.ts:1-660](file://src/cli/completion-cli.ts#L1-L660)
+- [completion-fish.ts:1-42](file://src/cli/completion-fish.ts#L1-L42)
+- [sandbox-cli.ts:1-175](file://src/cli/sandbox-cli.ts#L1-L175)
+- [sandbox.ts:1-201](file://src/commands/sandbox.ts#L1-L201)
+- [sandbox-explain.ts:1-338](file://src/commands/sandbox-explain.ts#L1-L338)
+- [memory-cli.ts:1-818](file://src/cli/memory-cli.ts#L1-L818)
 
 **Section sources**
-- [src/cli/skills-cli.ts](file://src/cli/skills-cli.ts)
-- [src/cli/memory-cli.ts](file://src/cli/memory-cli.ts)
-- [src/cli/models-cli.ts](file://src/cli/models-cli.ts)
-- [src/cli/sandbox-cli.ts](file://src/cli/sandbox-cli.ts)
-- [src/cli/cron-cli.ts](file://src/cli/cron-cli.ts)
-- [src/cli/hooks-cli.ts](file://src/cli/hooks-cli.ts)
-- [src/commands/models.ts](file://src/commands/models.ts)
-- [src/commands/sandbox.ts](file://src/commands/sandbox.ts)
+- [completion-cli.ts:1-660](file://src/cli/completion-cli.ts#L1-L660)
+- [completion-fish.ts:1-42](file://src/cli/completion-fish.ts#L1-L42)
+- [sandbox-cli.ts:1-175](file://src/cli/sandbox-cli.ts#L1-L175)
+- [sandbox.ts:1-201](file://src/commands/sandbox.ts#L1-L201)
+- [sandbox-explain.ts:1-338](file://src/commands/sandbox-explain.ts#L1-L338)
+- [memory-cli.ts:1-818](file://src/cli/memory-cli.ts#L1-L818)
 
 ## Core Components
-- Skills: Discovery, installation, and management of skills and skill creators.
-- Memory: Vector memory backend configuration, batch embedding, and indexing operations.
-- Models: Model aliases, fallbacks, authentication, and selection for text and image tasks.
-- Sandbox: Listing and recreating sandbox containers and browsers; filtering by session or agent.
-- Cron: Scheduled delivery orchestration and heartbeat policies.
-- Hooks: Hook lifecycle, installation, status, and Gmail watcher management.
+- Shell completion command
+  - Generates completion scripts for zsh, bash, fish, and PowerShell
+  - Supports writing cached scripts to state directory and installing into shell profiles
+  - Uses a lazy registration strategy to build the full command tree for accurate completions
+- Sandbox management command
+  - Lists sandbox runtimes and their status
+  - Recreates sandbox runtimes to apply configuration changes
+  - Explains effective sandbox configuration and tool policy
+- Memory management command
+  - Inspects memory search status and provider readiness
+  - Reindexes memory files and surfaces indexing progress and artifacts
+  - Searches memory with configurable result limits and scoring
 
 **Section sources**
-- [src/cli/skills-cli.ts](file://src/cli/skills-cli.ts)
-- [src/cli/memory-cli.ts](file://src/cli/memory-cli.ts)
-- [src/cli/models-cli.ts](file://src/cli/models-cli.ts)
-- [src/cli/sandbox-cli.ts](file://src/cli/sandbox-cli.ts)
-- [src/cli/cron-cli.ts](file://src/cli/cron-cli.ts)
-- [src/cli/hooks-cli.ts](file://src/cli/hooks-cli.ts)
+- [completion-cli.ts:231-301](file://src/cli/completion-cli.ts#L231-L301)
+- [completion.md:1-36](file://docs/cli/completion.md#L1-L36)
+- [sandbox-cli.ts:59-175](file://src/cli/sandbox-cli.ts#L59-L175)
+- [sandbox.md:1-198](file://docs/cli/sandbox.md#L1-L198)
+- [memory-cli.ts:576-818](file://src/cli/memory-cli.ts#L576-L818)
+- [memory.md:1-67](file://docs/cli/memory.md#L1-L67)
 
 ## Architecture Overview
-The CLI modules parse arguments and delegate to command modules. Command modules coordinate with internal subsystems (e.g., memory backends, sandbox runtime, cron scheduler, hooks manager).
+The utility commands integrate with core subsystems through runtime abstractions and configuration loaders. The completion command builds a full command tree to generate accurate completions. The sandbox command orchestrates listing and recreation flows, delegating to backend-specific APIs. The memory command coordinates with memory managers and progress reporting.
 
 ```mermaid
 sequenceDiagram
 participant U as "User"
-participant CLI as "CLI Module"
-participant CMD as "Command Module"
-participant SYS as "System Subsystem"
-U->>CLI : Invoke utility command
-CLI->>CMD : Parse args and dispatch
-CMD->>SYS : Perform operation
-SYS-->>CMD : Result or error
-CMD-->>CLI : Formatted output
-CLI-->>U : Print result or exit
+participant P as "Program (Commander)"
+participant CC as "completion-cli.ts"
+participant CF as "completion-fish.ts"
+U->>P : "openclaw completion --shell zsh"
+P->>CC : "registerCompletionCli()"
+CC->>CC : "lazy register core + subcommands"
+CC->>CC : "getCompletionScript(zsh)"
+CC-->>U : "stdout completion script"
+Note over CC,CF : "Fish helpers used for Fish completion lines"
 ```
 
-[No sources needed since this diagram shows conceptual workflow, not actual code structure]
+**Diagram sources**
+- [completion-cli.ts:231-301](file://src/cli/completion-cli.ts#L231-L301)
+- [completion-fish.ts:1-42](file://src/cli/completion-fish.ts#L1-L42)
+
+**Section sources**
+- [completion-cli.ts:231-301](file://src/cli/completion-cli.ts#L231-L301)
+- [completion-fish.ts:1-42](file://src/cli/completion-fish.ts#L1-L42)
 
 ## Detailed Component Analysis
 
-### Skills Management
-Skills are discovered, installed, and curated via the skills CLI. The command module exposes subcommands for listing, installing, and managing skills.
-
-- Typical workflow:
-  - Discover available skills and their metadata.
-  - Install or update skills.
-  - Manage skill creators and templates.
-
-- Integration pattern:
-  - Skills CLI delegates to skills command module.
-  - Command module interacts with the skills registry and filesystem.
-
-- Best practices:
-  - Keep skills updated regularly.
-  - Prefer official or verified skills.
-  - Use skill creators for consistent templates.
-
-**Section sources**
-- [src/cli/skills-cli.ts](file://src/cli/skills-cli.ts)
-
-### Memory Operations
-Vector memory supports configurable backends and batch operations for embedding and indexing.
-
-- Backend configuration:
-  - Select and configure a memory backend.
-  - Set embedding provider and chunking strategy.
-
-- Batch operations:
-  - Prepare batches for embedding.
-  - Upload embeddings and handle errors.
-  - Track batch status and output.
-
-- Example scenarios:
-  - Index documents for retrieval.
-  - Re-index after schema or provider changes.
+### Shell Completion Command
+- Purpose
+  - Generate and install shell completion scripts for zsh, bash, fish, and PowerShell
+  - Write cached scripts to state directory for fast shell startup
+- Key behaviors
+  - Lazy registration of core and subcommands to build a complete command tree
+  - Writes completion scripts to $OPENCLAW_STATE_DIR/completions when requested
+  - Installs completion by appending a “OpenClaw Completion” block to the appropriate shell profile
+  - Detects slow dynamic completion patterns and warns
+- Practical usage
+  - Generate for a specific shell and print to stdout
+  - Write cached scripts for all shells to state directory
+  - Install completion into the user’s shell profile
+- Integration
+  - Uses the program context and subcommand registry to build the command tree
+  - Fish completion line builders are reused for Fish-specific completions
 
 ```mermaid
 flowchart TD
-Start(["Start"]) --> Configure["Configure backend and provider"]
-Configure --> Prepare["Prepare batch embeddings"]
-Prepare --> Upload["Upload embeddings"]
-Upload --> Status{"Upload success?"}
-Status --> |Yes| Index["Index vectors"]
-Status --> |No| HandleErr["Handle errors and retry"]
-Index --> Done(["Done"])
-HandleErr --> Done
+Start(["Run 'openclaw completion'"]) --> CheckShell["Resolve shell from env or option"]
+CheckShell --> Register["Lazy register core + subcommands"]
+Register --> Decision{"--write-state?"}
+Decision --> |Yes| Write["Write cached scripts to state dir"]
+Decision --> |No| Install{"--install?"}
+Install --> |Yes| InstallFlow["Install into shell profile"]
+Install --> |No| Print["Print completion script to stdout"]
+Write --> End(["Exit"])
+InstallFlow --> End
+Print --> End
 ```
 
 **Diagram sources**
-- [src/memory/backend-config.ts](file://src/memory/backend-config.ts)
-- [src/memory/batch-runner.ts](file://src/memory/batch-runner.ts)
-- [src/memory/batch-upload.ts](file://src/memory/batch-upload.ts)
-- [src/memory/batch-output.ts](file://src/memory/batch-output.ts)
+- [completion-cli.ts:251-301](file://src/cli/completion-cli.ts#L251-L301)
 
 **Section sources**
-- [src/cli/memory-cli.ts](file://src/cli/memory-cli.ts)
-- [src/memory/backend-config.ts](file://src/memory/backend-config.ts)
-- [src/memory/batch-runner.ts](file://src/memory/batch-runner.ts)
-- [src/memory/batch-upload.ts](file://src/memory/batch-upload.ts)
-- [src/memory/batch-output.ts](file://src/memory/batch-output.ts)
+- [completion-cli.ts:231-301](file://src/cli/completion-cli.ts#L231-L301)
+- [completion.md:1-36](file://docs/cli/completion.md#L1-L36)
 
-### Model Configuration
-Models command module centralizes model management: aliases, fallbacks, authentication, ordering, scanning, setting primary models, and image-specific configurations.
-
-- Typical workflow:
-  - Scan available models.
-  - Set primary text and image models.
-  - Configure authentication and fallbacks.
-  - Adjust provider order for failover.
-
-- Integration pattern:
-  - Models CLI maps to models command exports.
-  - Command module coordinates with provider backends and auth profiles.
-
-- Best practices:
-  - Define clear fallback chains for resilience.
-  - Keep provider order aligned with cost and latency goals.
-  - Regularly scan and prune unused models.
+### Sandbox Management Command
+- Purpose
+  - Manage sandbox runtimes (Docker-based agent isolation) and inspect effective sandbox configuration
+- Subcommands
+  - list: list sandbox containers and browsers, with optional JSON output
+  - recreate: remove sandbox runtimes to force recreation with updated config
+  - explain: explain effective sandbox mode/scope/workspace access, tool policy, and elevated gates
+- Practical usage
+  - List all containers or filter by browser
+  - Recreate all containers or filter by session or agent
+  - Explain sandbox configuration for a session or agent, optionally in JSON
 
 ```mermaid
 sequenceDiagram
 participant U as "User"
-participant CLI as "Models CLI"
-participant CMD as "Models Command"
-participant Prov as "Provider Backends"
-U->>CLI : set model
-CLI->>CMD : parse and validate
-CMD->>Prov : configure provider and auth
-Prov-->>CMD : status
-CMD-->>CLI : result
-CLI-->>U : success or error
+participant P as "Program (Commander)"
+participant SC as "sandbox-cli.ts"
+participant CMD as "sandbox.ts"
+participant EX as "sandbox-explain.ts"
+U->>P : "openclaw sandbox recreate --all --force"
+P->>SC : "registerSandboxCli()"
+SC->>CMD : "sandboxRecreateCommand({ all : true, force : true })"
+CMD-->>U : "Removed containers summary"
 ```
 
 **Diagram sources**
-- [src/commands/models.ts](file://src/commands/models.ts)
+- [sandbox-cli.ts:59-175](file://src/cli/sandbox-cli.ts#L59-L175)
+- [sandbox.ts:66-94](file://src/commands/sandbox.ts#L66-L94)
 
 **Section sources**
-- [src/cli/models-cli.ts](file://src/cli/models-cli.ts)
-- [src/commands/models.ts](file://src/commands/models.ts)
+- [sandbox-cli.ts:59-175](file://src/cli/sandbox-cli.ts#L59-L175)
+- [sandbox.ts:43-94](file://src/commands/sandbox.ts#L43-L94)
+- [sandbox-explain.ts:129-338](file://src/commands/sandbox-explain.ts#L129-L338)
+- [sandbox.md:1-198](file://docs/cli/sandbox.md#L1-L198)
 
-### Sandbox Management
-Sandbox commands manage containers and browsers used for isolated execution. Users can list, recreate, and filter sandbox resources.
-
-- Typical workflow:
-  - List existing containers and browsers.
-  - Recreate containers for a session or agent.
-  - Confirm destructive operations.
-
-- Integration pattern:
-  - Sandbox CLI delegates to sandbox command module.
-  - Command module filters and removes containers or browsers.
-
-- Best practices:
-  - Use filtering by session or agent to limit scope.
-  - Always confirm destructive actions.
-  - Clean up unused containers periodically.
-
-```mermaid
-flowchart TD
-S(["Start"]) --> List["List containers/browsers"]
-List --> Filter["Filter by session or agent"]
-Filter --> Preview["Preview removal"]
-Preview --> Confirm{"Confirmed?"}
-Confirm --> |No| Abort["Abort"]
-Confirm --> |Yes| Remove["Remove selected"]
-Remove --> Report["Report success/failure counts"]
-Abort --> End(["End"])
-Report --> End
-```
-
-**Diagram sources**
-- [src/commands/sandbox.ts](file://src/commands/sandbox.ts)
-
-**Section sources**
-- [src/cli/sandbox-cli.ts](file://src/cli/sandbox-cli.ts)
-- [src/commands/sandbox.ts](file://src/commands/sandbox.ts)
-
-### Cron Job Handling
-Cron orchestrates scheduled deliveries and enforces heartbeat policies to keep jobs alive and responsive.
-
-- Typical workflow:
-  - Schedule or edit cron jobs.
-  - Enforce heartbeat policy to prevent stale runs.
-  - Deliver messages according to schedule.
-
-- Integration pattern:
-  - Cron CLI maps to cron command module.
-  - Command module coordinates delivery and heartbeat logic.
-
-- Best practices:
-  - Use heartbeat policies to detect and recover from failures.
-  - Keep schedules aligned with workload patterns.
-  - Monitor delivery outcomes and adjust policies.
+### Memory Management Command
+- Purpose
+  - Search, inspect, and reindex semantic memory for agents
+- Subcommands
+  - status: show memory search index status and provider readiness
+  - index: reindex memory files with progress and optional force
+  - search: search memory with configurable result limits and scoring
+- Practical usage
+  - Show status with deep probing and optional reindex
+  - Force reindex with verbose progress
+  - Search with positional or named query, limit results, and filter by minimum score
 
 ```mermaid
 sequenceDiagram
 participant U as "User"
-participant CLI as "Cron CLI"
-participant CMD as "Cron Command"
-participant Del as "Delivery Engine"
-participant HB as "Heartbeat Policy"
-U->>CLI : add/edit schedule
-CLI->>CMD : validate and persist
-CMD->>HB : enforce policy
-CMD->>Del : trigger delivery
-Del-->>CMD : outcome
-CMD-->>CLI : report
-CLI-->>U : status
+participant P as "Program (Commander)"
+participant MC as "memory-cli.ts"
+U->>P : "openclaw memory index --agent main --force --verbose"
+P->>MC : "runMemoryStatus({ index : true, force : true, verbose : true })"
+MC->>MC : "withMemoryManagerForAgent()"
+MC-->>U : "Progress updates and completion summary"
 ```
 
 **Diagram sources**
-- [src/cron/delivery.ts](file://src/cron/delivery.ts)
-- [src/cron/heartbeat-policy.ts](file://src/cron/heartbeat-policy.ts)
+- [memory-cli.ts:576-818](file://src/cli/memory-cli.ts#L576-L818)
 
 **Section sources**
-- [src/cli/cron-cli.ts](file://src/cli/cron-cli.ts)
-- [src/cron/delivery.ts](file://src/cron/delivery.ts)
-- [src/cron/heartbeat-policy.ts](file://src/cron/heartbeat-policy.ts)
-
-### Hooks Administration
-Hooks manage lifecycle events, installation, status checks, and Gmail watchers. The system supports importing URLs, frontmatter parsing, and bundled directories.
-
-- Typical workflow:
-  - Install hooks and check status.
-  - Import hook definitions from URL or file.
-  - Manage Gmail watchers and lifecycle.
-
-- Integration pattern:
-  - Hooks CLI delegates to hooks command module.
-  - Command module coordinates with hook manager, setup utilities, and watchers.
-
-- Best practices:
-  - Validate hook configurations before installation.
-  - Use frontmatter for declarative metadata.
-  - Monitor Gmail watcher health and logs.
-
-```mermaid
-sequenceDiagram
-participant U as "User"
-participant CLI as "Hooks CLI"
-participant CMD as "Hooks Command"
-participant Inst as "Installer"
-participant GM as "Gmail Watcher"
-participant Cfg as "Config Manager"
-U->>CLI : install/status/import
-CLI->>CMD : dispatch
-CMD->>Inst : install hooks
-CMD->>GM : setup watchers
-CMD->>Cfg : load frontmatter and config
-GM-->>CMD : status
-Inst-->>CMD : result
-Cfg-->>CMD : config
-CMD-->>CLI : report
-CLI-->>U : status
-```
-
-**Diagram sources**
-- [src/hooks/hooks.ts](file://src/hooks/hooks.ts)
-- [src/hooks/install.ts](file://src/hooks/install.ts)
-- [src/hooks/status.ts](file://src/hooks/status.ts)
-- [src/hooks/import-url.ts](file://src/hooks/import-url.ts)
-- [src/hooks/frontmatter.ts](file://src/hooks/frontmatter.ts)
-- [src/hooks/bundled-dir.ts](file://src/hooks/bundled-dir.ts)
-- [src/hooks/gmail-watcher.ts](file://src/hooks/gmail-watcher.ts)
-- [src/hooks/gmail-watcher-lifecycle.ts](file://src/hooks/gmail-watcher-lifecycle.ts)
-- [src/hooks/gmail-ops.ts](file://src/hooks/gmail-ops.ts)
-
-**Section sources**
-- [src/cli/hooks-cli.ts](file://src/cli/hooks-cli.ts)
-- [src/hooks/hooks.ts](file://src/hooks/hooks.ts)
-- [src/hooks/install.ts](file://src/hooks/install.ts)
-- [src/hooks/status.ts](file://src/hooks/status.ts)
-- [src/hooks/import-url.ts](file://src/hooks/import-url.ts)
-- [src/hooks/frontmatter.ts](file://src/hooks/frontmatter.ts)
-- [src/hooks/bundled-dir.ts](file://src/hooks/bundled-dir.ts)
-- [src/hooks/gmail-watcher.ts](file://src/hooks/gmail-watcher.ts)
-- [src/hooks/gmail-watcher-lifecycle.ts](file://src/hooks/gmail-watcher-lifecycle.ts)
-- [src/hooks/gmail-ops.ts](file://src/hooks/gmail-ops.ts)
+- [memory-cli.ts:335-574](file://src/cli/memory-cli.ts#L335-L574)
+- [memory-cli.ts:604-744](file://src/cli/memory-cli.ts#L604-L744)
+- [memory-cli.ts:746-818](file://src/cli/memory-cli.ts#L746-L818)
+- [memory.md:1-67](file://docs/cli/memory.md#L1-L67)
 
 ## Dependency Analysis
-Utility commands depend on their respective command modules and subsystems. Cohesion is strong within each utility; coupling is primarily through CLI dispatch and runtime logging/error handling.
+- Completion command depends on:
+  - Program context and subcommand registry to build a full command tree
+  - Shell profile paths and caching under state directory
+  - Fish completion line builders for Fish completions
+- Sandbox command depends on:
+  - Backend APIs for listing and removing sandbox containers and browsers
+  - Display helpers for listing and summaries
+  - Confirmation prompts for destructive operations
+- Memory command depends on:
+  - Memory search manager and progress reporting
+  - Configuration loaders and secret resolution for memory backends
+  - Session transcript paths for session-based memory sources
 
 ```mermaid
 graph LR
-SK["skills-cli.ts"] --> CMDSK["commands/skills.ts"]
-ME["memory-cli.ts"] --> CMDSM["commands/memory.ts"]
-MO["models-cli.ts"] --> CMDMO["commands/models.ts"]
-SA["sandbox-cli.ts"] --> CMDSA["commands/sandbox.ts"]
-CR["cron-cli.ts"] --> CMDCR["commands/cron.ts"]
-HO["hooks-cli.ts"] --> CMDHO["commands/hooks.ts"]
+CC["completion-cli.ts"] --> CF["completion-fish.ts"]
+SC["sandbox-cli.ts"] --> CMD["sandbox.ts"]
+SC --> EX["sandbox-explain.ts"]
+MC["memory-cli.ts"] --> MM["Memory Manager"]
+MC --> CFG["Config Loader"]
+MC --> SEC["Secret Resolution"]
 ```
 
-[No sources needed since this diagram shows conceptual relationships, not actual code structure]
+**Diagram sources**
+- [completion-cli.ts:1-660](file://src/cli/completion-cli.ts#L1-L660)
+- [completion-fish.ts:1-42](file://src/cli/completion-fish.ts#L1-L42)
+- [sandbox-cli.ts:1-175](file://src/cli/sandbox-cli.ts#L1-L175)
+- [sandbox.ts:1-201](file://src/commands/sandbox.ts#L1-L201)
+- [sandbox-explain.ts:1-338](file://src/commands/sandbox-explain.ts#L1-L338)
+- [memory-cli.ts:1-818](file://src/cli/memory-cli.ts#L1-L818)
 
 **Section sources**
-- [src/cli/skills-cli.ts](file://src/cli/skills-cli.ts)
-- [src/cli/memory-cli.ts](file://src/cli/memory-cli.ts)
-- [src/cli/models-cli.ts](file://src/cli/models-cli.ts)
-- [src/cli/sandbox-cli.ts](file://src/cli/sandbox-cli.ts)
-- [src/cli/cron-cli.ts](file://src/cli/cron-cli.ts)
-- [src/cli/hooks-cli.ts](file://src/cli/hooks-cli.ts)
+- [completion-cli.ts:1-660](file://src/cli/completion-cli.ts#L1-L660)
+- [completion-fish.ts:1-42](file://src/cli/completion-fish.ts#L1-L42)
+- [sandbox-cli.ts:1-175](file://src/cli/sandbox-cli.ts#L1-L175)
+- [sandbox.ts:1-201](file://src/commands/sandbox.ts#L1-L201)
+- [sandbox-explain.ts:1-338](file://src/commands/sandbox-explain.ts#L1-L338)
+- [memory-cli.ts:1-818](file://src/cli/memory-cli.ts#L1-L818)
 
 ## Performance Considerations
-- Memory batching: Use batch runners to minimize overhead and improve throughput during embedding uploads.
-- Model fallbacks: Configure sensible fallback chains to reduce retry storms and improve availability.
-- Sandbox cleanup: Regularly remove unused containers to free resources and avoid contention.
-- Cron scheduling: Align schedules with workload peaks and tune heartbeat intervals to balance responsiveness and resource usage.
-- Hooks: Validate configurations early to avoid repeated setup failures and reduce runtime overhead.
+- Completion generation
+  - Writing cached scripts to state directory enables fast shell startup and avoids slow dynamic sourcing
+  - The command detects slow dynamic completion patterns and advises switching to cached scripts
+- Memory indexing
+  - Progress reporting provides ETA and elapsed time; verbose mode emits per-phase details
+  - Reindexing can be forced to rebuild the store when files or configuration change
+- Sandbox recreation
+  - Recreating runtimes ensures updated configuration takes effect without manual backend-specific cleanup
+  - Filtering by session or agent reduces unnecessary churn
 
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
-- Skills
-  - Verify skill availability and permissions.
-  - Reinstall if corrupted or outdated.
-- Memory
-  - Inspect backend configuration and provider credentials.
-  - Review batch upload errors and retry failed segments.
-- Models
-  - Confirm authentication tokens and provider quotas.
-  - Adjust fallback order to mitigate provider outages.
-- Sandbox
-  - Use filtering to target specific sessions or agents.
-  - Check logs for removal failures and reattempt selectively.
-- Cron
-  - Review heartbeat policy violations and delivery failures.
-  - Adjust schedules and retry policies based on logs.
-- Hooks
-  - Validate frontmatter and configuration files.
-  - Inspect Gmail watcher status and lifecycle transitions.
+- Completion installation
+  - If installation fails, ensure the cache exists; run the write-state command first
+  - Confirm the profile path exists or allow the command to create it
+  - Verify the “OpenClaw Completion” block is present in the profile
+- Slow dynamic completion
+  - The command detects patterns like sourcing dynamic scripts and warns; switch to cached scripts
+- Memory indexing
+  - If indexing fails, check for backend-specific errors and review verbose logs
+  - Ensure memory sources are readable and accessible
+- Sandbox recreation
+  - If no matching runtimes are found, verify filters (all/session/agent/browser)
+  - Confirm that the runtime registry recognizes the scope and session keys
 
 **Section sources**
-- [src/hooks/gmail.test.ts](file://src/hooks/gmail.test.ts)
-- [src/hooks/gmail-setup-utils.test.ts](file://src/hooks/gmail-setup-utils.test.ts)
-- [src/hooks/gmail-watcher.test.ts](file://src/hooks/gmail-watcher.test.ts)
-- [src/hooks/gmail-watcher-lifecycle.test.ts](file://src/hooks/gmail-watcher-lifecycle.test.ts)
-- [src/hooks/hooks-install.test.ts](file://src/hooks/hooks-install.test.ts)
-- [src/hooks/install.test.ts](file://src/hooks/install.test.ts)
-- [src/hooks/status.test.ts](file://src/hooks/status.test.ts)
-- [src/hooks/frontmatter.test.ts](file://src/hooks/frontmatter.test.ts)
-- [src/hooks/bundled-dir.test.ts](file://src/hooks/bundled-dir.test.ts)
-- [src/hooks/gmail-ops.test.ts](file://src/hooks/gmail-ops.test.ts)
-- [src/hooks/fire-and-forget.test.ts](file://src/hooks/fire-and-forget.test.ts)
+- [completion-cli.ts:208-229](file://src/cli/completion-cli.ts#L208-L229)
+- [completion-cli.ts:303-377](file://src/cli/completion-cli.ts#L303-L377)
+- [memory-cli.ts:370-402](file://src/cli/memory-cli.ts#L370-L402)
+- [sandbox.ts:98-113](file://src/commands/sandbox.ts#L98-L113)
 
 ## Conclusion
-Utility commands streamline operational tasks across skills, memory, models, sandbox, cron, and hooks. By following the documented workflows, integration patterns, and best practices, teams can maintain reliable, efficient, and observable systems. Use the troubleshooting guidance to diagnose and resolve common issues quickly.
+The utility commands streamline developer workflows by providing reliable shell completion, robust memory management, and pragmatic sandbox maintenance. By leveraging cached completion scripts, structured memory indexing, and targeted sandbox recreation, teams can improve productivity, reduce operational overhead, and maintain consistent environments across agents and sessions.
 
 [No sources needed since this section summarizes without analyzing specific files]
 
 ## Appendices
-- Examples
-  - Memory indexing: Configure backend, prepare batches, upload, and index.
-  - Model selection: Scan models, set primary and image models, configure auth and fallbacks.
-  - Sandbox configuration: List containers, filter by session or agent, recreate safely.
-  - Cron job management: Add/edit schedules, enforce heartbeat policies, monitor outcomes.
-  - Hooks administration: Install, import, and manage Gmail watchers with proper status checks.
+
+### Practical Examples
+
+- Shell completion
+  - Generate and print a zsh completion script
+  - Write cached scripts for all shells to state directory
+  - Install completion into the user’s shell profile
+  - Reference: [completion.md:1-36](file://docs/cli/completion.md#L1-L36)
+
+- Sandbox management
+  - List all sandbox containers
+  - Recreate all containers with force
+  - Explain effective sandbox configuration for a session
+  - Reference: [sandbox.md:1-198](file://docs/cli/sandbox.md#L1-L198)
+
+- Memory management
+  - Show memory status with deep probing
+  - Force reindex with verbose progress
+  - Search memory with result limits and minimum score
+  - Reference: [memory.md:1-67](file://docs/cli/memory.md#L1-L67)
+
+### Best Practices
+- Prefer cached completion scripts for faster shell startup
+- Use sandbox recreate after updating Docker images or sandbox configuration
+- Keep memory indexing current by running status/index regularly
+- Scope memory operations to specific agents when diagnosing issues
 
 [No sources needed since this section provides general guidance]

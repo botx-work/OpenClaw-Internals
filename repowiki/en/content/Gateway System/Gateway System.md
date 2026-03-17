@@ -2,16 +2,14 @@
 
 <cite>
 **Referenced Files in This Document**
-- [docs/gateway/index.md](file://docs/gateway/index.md)
-- [docs/gateway/configuration.md](file://docs/gateway/configuration.md)
-- [docs/gateway/protocol.md](file://docs/gateway/protocol.md)
-- [docs/gateway/authentication.md](file://docs/gateway/authentication.md)
-- [src/gateway/server.ts](file://src/gateway/server.ts)
-- [src/gateway/server.impl.ts](file://src/gateway/server.impl.ts)
-- [src/gateway/auth.ts](file://src/gateway/auth.ts)
-- [src/gateway/net.ts](file://src/gateway/net.ts)
-- [src/gateway/protocol/schema.ts](file://src/gateway/protocol/schema.ts)
-- [src/gateway/protocol/schema/frames.ts](file://src/gateway/protocol/schema/frames.ts)
+- [index.md](file://docs/gateway/index.md)
+- [protocol.md](file://docs/gateway/protocol.md)
+- [configuration.md](file://docs/gateway/configuration.md)
+- [authentication.md](file://docs/gateway/authentication.md)
+- [heartbeat.md](file://docs/gateway/heartbeat.md)
+- [pairing.md](file://docs/gateway/pairing.md)
+- [schema.ts](file://src/gateway/protocol/schema.ts)
+- [protocol/index.ts](file://src/gateway/protocol/index.ts)
 </cite>
 
 ## Table of Contents
@@ -27,408 +25,361 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document describes the Gateway System that serves as the central control plane for OpenClaw. The Gateway provides:
-- A single always-on process hosting routing, control plane, and channel connections
-- A unified WebSocket control/RPC channel for operator and node clients
-- Integrated HTTP APIs (OpenAI-compatible, OpenResponses, tools invoke)
-- A Control UI and hooks
-- Robust authentication and authorization for operator and node roles
-- Real-time eventing and session/channel/tool/event orchestration
+The Gateway serves as the central control plane for OpenClaw. It orchestrates all operations across clients, tools, and events through a unified WebSocket-based protocol. It provides:
+- Single-port multiplexing for WebSocket control/RPC, HTTP APIs (OpenAI-compatible, Responses, tools invoke), and the Control UI/hooks
+- Role-based access control and device identity-based pairing
+- Presence detection, health monitoring, and heartbeat scheduling
+- Remote access via Tailscale/VPN or SSH tunneling
+- Robust configuration and secrets management with hot reload
 
-It documents the WebSocket-based protocol, server configuration, authentication mechanisms, and operational runbooks. It also covers clustering, load balancing, and high availability considerations, along with troubleshooting guidance.
+This document explains the WebSocket architecture, message routing, session management, protocol specifications, and operational guidance for production deployments.
 
 ## Project Structure
-The Gateway is implemented in TypeScript and organized around a modular runtime that composes:
-- Server bootstrap and lifecycle
-- Authentication and authorization
-- Network binding and security policies
-- Protocol framing and method schemas
-- Channel manager and plugin integration
-- Cron, maintenance timers, and discovery
+The Gateway documentation and implementation are organized around:
+- Protocol specification and framing
+- Configuration and runtime behavior
+- Authentication and device pairing
+- Heartbeat and health monitoring
+- Operational runbooks and troubleshooting
 
 ```mermaid
 graph TB
-subgraph "Gateway Runtime"
-A["server.ts<br/>Exports startGatewayServer"]
-B["server.impl.ts<br/>Server bootstrap, runtime state, handlers"]
-C["auth.ts<br/>Auth resolution, rate limiting, Tailscale, proxies"]
-D["net.ts<br/>Bind host resolution, client IP, security checks"]
-E["protocol/schema.ts<br/>Protocol schemas export"]
-F["protocol/schema/frames.ts<br/>Frames, connect, hello-ok, events"]
+subgraph "Documentation"
+IDX["Gateway Index<br/>(runbook, ports, reload)"]
+PROT["Protocol Docs<br/>(WS frames, roles, auth)"]
+CONF["Configuration Docs<br/>(tasks, hot reload, env)"]
+AUTHD["Authentication Docs<br/>(keys, OAuth, rotation)"]
+HB["Heartbeat Docs<br/>(schedule, delivery, visibility)"]
+PAIR["Pairing Docs<br/>(node pairing, approvals)"]
 end
-subgraph "Integration"
-G["Channel Manager<br/>(channels/plugins)"]
-H["Plugins & Methods<br/>(core + channel)"]
-I["HTTP Servers<br/>(OpenAI, Responses, hooks)"]
-J["WebSocket Server<br/>(WS control/RPC)"]
+subgraph "Implementation"
+SCHEMA["Protocol Schema Exports<br/>(schema.ts)"]
+VALID["Protocol Validators<br/>(protocol/index.ts)"]
 end
-A --> B
-B --> C
-B --> D
-B --> E
-E --> F
-B --> G
-B --> H
-B --> I
-B --> J
+IDX --> PROT
+PROT --> VALID
+CONF --> VALID
+AUTHD --> PROT
+HB --> CONF
+PAIR --> PROT
+SCHEMA --> VALID
 ```
 
 **Diagram sources**
-- [src/gateway/server.ts](file://src/gateway/server.ts#L1-L4)
-- [src/gateway/server.impl.ts](file://src/gateway/server.impl.ts#L1-L120)
-- [src/gateway/auth.ts](file://src/gateway/auth.ts#L1-L120)
-- [src/gateway/net.ts](file://src/gateway/net.ts#L220-L271)
-- [src/gateway/protocol/schema.ts](file://src/gateway/protocol/schema.ts#L1-L19)
-- [src/gateway/protocol/schema/frames.ts](file://src/gateway/protocol/schema/frames.ts#L1-L60)
+- [index.md:1-262](file://docs/gateway/index.md#L1-L262)
+- [protocol.md:1-268](file://docs/gateway/protocol.md#L1-L268)
+- [configuration.md:1-634](file://docs/gateway/configuration.md#L1-L634)
+- [authentication.md:1-180](file://docs/gateway/authentication.md#L1-L180)
+- [heartbeat.md:1-394](file://docs/gateway/heartbeat.md#L1-L394)
+- [pairing.md:1-100](file://docs/gateway/pairing.md#L1-L100)
+- [schema.ts:1-19](file://src/gateway/protocol/schema.ts#L1-L19)
+- [protocol/index.ts:1-673](file://src/gateway/protocol/index.ts#L1-L673)
 
 **Section sources**
-- [src/gateway/server.ts](file://src/gateway/server.ts#L1-L4)
-- [src/gateway/server.impl.ts](file://src/gateway/server.impl.ts#L266-L320)
-- [src/gateway/auth.ts](file://src/gateway/auth.ts#L217-L292)
-- [src/gateway/net.ts](file://src/gateway/net.ts#L220-L271)
-- [src/gateway/protocol/schema.ts](file://src/gateway/protocol/schema.ts#L1-L19)
+- [index.md:27-124](file://docs/gateway/index.md#L27-L124)
+- [protocol.md:10-268](file://docs/gateway/protocol.md#L10-L268)
+- [configuration.md:10-634](file://docs/gateway/configuration.md#L10-L634)
+- [authentication.md:9-180](file://docs/gateway/authentication.md#L9-L180)
+- [heartbeat.md:9-394](file://docs/gateway/heartbeat.md#L9-L394)
+- [pairing.md:10-100](file://docs/gateway/pairing.md#L10-L100)
+- [schema.ts:1-19](file://src/gateway/protocol/schema.ts#L1-L19)
+- [protocol/index.ts:1-673](file://src/gateway/protocol/index.ts#L1-L673)
 
 ## Core Components
-- Server bootstrap and runtime state
-  - Initializes configuration, secrets, plugins, channels, cron, discovery, and maintenance timers
-  - Creates HTTP servers (OpenAI-compatible, OpenResponses, hooks) and WebSocket server
-  - Manages broadcast, subscriptions, and agent/node event dispatch
-- Authentication and authorization
-  - Supports token, password, trusted proxy, and Tailscale modes
-  - Enforces rate limiting and device identity policies
-- Network and security
-  - Resolves bind host across loopback, LAN, tailnet, auto, and custom modes
-  - Validates client IPs, trusted proxies, and secure WebSocket URLs
-- Protocol and method schemas
-  - Defines request/response/event frames, connect/hello-ok, and typed method surfaces
-- Configuration and hot reload
-  - Reads JSON5 config, validates against schema, and hot-applies safe changes
+- WebSocket control plane and RPC: single-port multiplexing for WS control/RPC, HTTP APIs, and Control UI
+- Protocol framing: request/response/event frames with typed schemas and validation
+- Authentication and device identity: token-based auth, device challenge-response, and device token issuance
+- Presence and session management: system-presence snapshots, session scoping, and reset policies
+- Health monitoring and heartbeat: periodic agent turns with visibility controls and delivery routing
+- Configuration and secrets: strict schema validation, hot reload, and SecretRef-based credential management
 
 **Section sources**
-- [src/gateway/server.impl.ts](file://src/gateway/server.impl.ts#L488-L520)
-- [src/gateway/auth.ts](file://src/gateway/auth.ts#L378-L485)
-- [src/gateway/net.ts](file://src/gateway/net.ts#L411-L456)
-- [src/gateway/protocol/schema/frames.ts](file://src/gateway/protocol/schema/frames.ts#L125-L164)
-- [docs/gateway/configuration.md](file://docs/gateway/configuration.md#L349-L387)
+- [index.md:68-124](file://docs/gateway/index.md#L68-L124)
+- [protocol.md:10-268](file://docs/gateway/protocol.md#L10-L268)
+- [configuration.md:10-634](file://docs/gateway/configuration.md#L10-L634)
+- [heartbeat.md:9-394](file://docs/gateway/heartbeat.md#L9-L394)
+- [pairing.md:10-100](file://docs/gateway/pairing.md#L10-L100)
 
 ## Architecture Overview
-The Gateway is a single always-on process that:
-- Binds a single port for WebSocket control/RPC and HTTP APIs
-- Serves the Control UI and hooks
-- Manages channel connections and plugins
-- Exposes a typed method surface over WebSocket and HTTP
+The Gateway is a long-running process that:
+- Listens on a single port for WebSocket connections and HTTP APIs
+- Enforces role-based access and device identity during connect
+- Maintains presence and health snapshots
+- Routes requests to internal subsystems (agents, sessions, channels, tools)
+- Emits events for UIs, operators, and nodes
+- Supports remote access via Tailscale/VPN or SSH tunneling
 
 ```mermaid
-sequenceDiagram
-participant Client as "Operator/Node Client"
-participant WS as "WebSocket Server"
-participant Auth as "Auth Module"
-participant State as "Runtime State"
-participant Plugins as "Plugins/Methods"
-Client->>WS : "Connect (WebSocket)"
-WS->>Auth : "Authorize incoming request"
-Auth-->>WS : "Authorization result"
-WS->>State : "Handshake (connect)"
-State-->>WS : "Hello-ok with snapshot"
-WS-->>Client : "hello-ok"
-Client->>WS : "Requests (req)"
-WS->>Plugins : "Dispatch method"
-Plugins-->>WS : "Response (res)"
-WS-->>Client : "Response (res)"
-State-->>WS : "Events (event)"
-WS-->>Client : "Events (event)"
+graph TB
+Client["Client (Operator/Node/Web UI)"]
+WS["WebSocket Endpoint"]
+HTTP["HTTP APIs<br/>(OpenAI-compatible, Responses, tools)"]
+CTRL["Control Plane<br/>(routing, auth, presence)"]
+AGENTS["Agents"]
+SESSIONS["Sessions"]
+CHANNELS["Channels"]
+TOOLS["Tools/Catalog"]
+HEALTH["Health Monitor"]
+UI["Control UI/Hooks"]
+Client --> WS
+Client --> HTTP
+WS --> CTRL
+HTTP --> CTRL
+CTRL --> AGENTS
+CTRL --> SESSIONS
+CTRL --> CHANNELS
+CTRL --> TOOLS
+CTRL --> HEALTH
+CTRL --> UI
 ```
 
 **Diagram sources**
-- [src/gateway/server.impl.ts](file://src/gateway/server.impl.ts#L600-L626)
-- [src/gateway/auth.ts](file://src/gateway/auth.ts#L378-L485)
-- [src/gateway/protocol/schema/frames.ts](file://src/gateway/protocol/schema/frames.ts#L125-L164)
+- [index.md:68-124](file://docs/gateway/index.md#L68-L124)
+- [protocol.md:10-268](file://docs/gateway/protocol.md#L10-L268)
 
 ## Detailed Component Analysis
 
-### Server Implementation
-The server bootstrap coordinates configuration loading, secrets activation, plugin loading, channel initialization, and runtime state creation. It sets up:
-- HTTP servers for OpenAI-compatible chat completions, OpenResponses, and hooks
-- WebSocket server for control/RPC
-- Discovery, cron, heartbeat, maintenance timers, and health snapshots
-- Broadcast and subscription systems for agent/node events
-
-Key responsibilities:
-- Resolve runtime configuration (bind host, ports, auth, TLS, HTTP endpoints)
-- Initialize plugin registry and method surface
-- Start channel manager and health monitor
-- Register maintenance timers and diagnostics
-- Attach WebSocket handlers and broadcast subsystem
-
-Operational highlights:
-- Supports graceful shutdown emitting a shutdown event
-- Emits system events for secrets reload status
-- Integrates with Tailscale exposure and discovery
-- Applies lane concurrency and media cleanup policies
-
-**Section sources**
-- [src/gateway/server.impl.ts](file://src/gateway/server.impl.ts#L266-L320)
-- [src/gateway/server.impl.ts](file://src/gateway/server.impl.ts#L488-L520)
-- [src/gateway/server.impl.ts](file://src/gateway/server.impl.ts#L600-L626)
-- [src/gateway/server.impl.ts](file://src/gateway/server.impl.ts#L706-L725)
-
-### Authentication and Authorization
-The Gateway supports multiple auth modes:
-- Token-based (default)
-- Password-based
-- Trusted proxy (for reverse-proxy-managed identities)
-- Tailscale (for loopback and tailnet contexts)
-
-Features:
-- Rate limiting for auth attempts
-- Device identity and challenge-response for node/operator clients
-- Local direct request detection and loopback/Tailscale policies
-- Trusted proxy header validation and allowlists
-- Secure WebSocket URL enforcement (wss or loopback by default)
-
-```mermaid
-flowchart TD
-Start(["Incoming Request"]) --> Mode{"Auth Mode"}
-Mode --> |Token| CheckToken["Compare token"]
-Mode --> |Password| CheckPassword["Compare password"]
-Mode --> |Trusted Proxy| CheckProxy["Validate headers + allowlist"]
-Mode --> |Tailscale| CheckTS["Verify TS user + whois"]
-Mode --> |None| Allow["Allow"]
-CheckToken --> |Mismatch| RL["Record failure<br/>Rate limit?"]
-CheckPassword --> |Mismatch| RL
-CheckProxy --> |Missing/invalid| Deny["Deny"]
-CheckTS --> |Mismatch| Deny
-RL --> Deny
-Allow --> Ok["Authorize"]
-Deny --> End(["Reject"])
-Ok --> End
-```
-
-**Diagram sources**
-- [src/gateway/auth.ts](file://src/gateway/auth.ts#L378-L485)
-
-**Section sources**
-- [src/gateway/auth.ts](file://src/gateway/auth.ts#L217-L292)
-- [src/gateway/auth.ts](file://src/gateway/auth.ts#L378-L485)
-- [src/gateway/net.ts](file://src/gateway/net.ts#L411-L456)
-
-### Network Binding and Security Policies
-The Gateway resolves its bind host across modes:
-- loopback: prefers 127.0.0.1, falls back to 0.0.0.0
-- lan: binds 0.0.0.0
-- tailnet: uses primary Tailnet IPv4 if available, else loopback
-- auto: loopback if available, else LAN
-- custom: user-specified IP with fallback to LAN
-
-Security validations:
-- Client IP resolution through trusted proxies and forwarded headers
-- Localish host detection for loopback and Tailscale hostnames
-- Secure WebSocket URL policy (strict loopback by default; optional private network allowance)
-- SSRF and private-range checks for hostnames/IPs
-
-**Section sources**
-- [src/gateway/net.ts](file://src/gateway/net.ts#L220-L271)
-- [src/gateway/net.ts](file://src/gateway/net.ts#L411-L456)
-
-### Protocol Specification
-The Gateway WebSocket protocol is the single control plane for sessions, channels, tools, and events. It uses text frames with JSON payloads and requires a connect handshake.
-
-Handshake:
-- Pre-connect challenge with nonce and timestamp
-- Client connect with min/max protocol, client identity, role/scopes, capabilities, permissions, device identity, and auth
-- Server responds with hello-ok including protocol version, features, snapshot, and optional device token
-
-Framing:
-- Request: req(id, method, params)
-- Response: res(id, ok, payload|error)
-- Event: event(event, payload, seq?, stateVersion?)
-
-Roles and scopes:
-- operator: control plane client (CLI/UI/automation)
-- node: capability host (camera/screen/canvas/system.run)
-
-Device identity and pairing:
-- Nodes include a stable device identity and sign the server nonce
-- Device tokens are issued per device + role and can be rotated/revoke
-
-Versioning:
-- Protocol version is defined in schema and validated by clients
+### WebSocket Protocol and Framing
+- Transport: WebSocket with text frames carrying JSON payloads
+- Handshake: Challenge-response before connect; clients must send a connect request with role, scopes, caps, permissions, and device identity
+- Framing:
+  - Request: {type:"req", id, method, params}
+  - Response: {type:"res", id, ok, payload|error}
+  - Event: {type:"event", event, payload, seq?, stateVersion?}
+- Versioning: PROTOCOL_VERSION is defined in schema and validated by clients and server
+- Auth: Token-based; device tokens may be issued and rotated per device and role
 
 ```mermaid
 sequenceDiagram
-participant Client as "Client"
-participant GW as "Gateway"
-GW-->>Client : "event(connect.challenge){nonce, ts}"
-Client->>GW : "req(connect){minProtocol,maxProtocol,client,role,scopes,caps,commands,permissions,auth,device,...}"
-GW-->>Client : "res(connect){ok : true,payload : {type : 'hello-ok',protocol,policy,...}}"
-Client->>GW : "req(...)"
-GW-->>Client : "res(...)"
-GW-->>Client : "event(...)"
+participant C as "Client"
+participant G as "Gateway"
+C->>G : "WebSocket connect"
+G-->>C : "connect.challenge {nonce, ts}"
+C->>G : "req(connect) {role, scopes, caps, permissions, auth, device}"
+G-->>C : "res(connect) {ok, payload : hello-ok {protocol, policy}}"
+C-->>G : "req(...) subsequent RPC"
+G-->>C : "res(...)/event(...)"
 ```
 
 **Diagram sources**
-- [docs/gateway/protocol.md](file://docs/gateway/protocol.md#L22-L78)
-- [src/gateway/protocol/schema/frames.ts](file://src/gateway/protocol/schema/frames.ts#L20-L69)
-- [src/gateway/protocol/schema/frames.ts](file://src/gateway/protocol/schema/frames.ts#L71-L112)
+- [protocol.md:22-90](file://docs/gateway/protocol.md#L22-L90)
+- [protocol.md:127-134](file://docs/gateway/protocol.md#L127-L134)
+- [protocol.md:191-206](file://docs/gateway/protocol.md#L191-L206)
 
 **Section sources**
-- [docs/gateway/protocol.md](file://docs/gateway/protocol.md#L10-L261)
-- [src/gateway/protocol/schema/frames.ts](file://src/gateway/protocol/schema/frames.ts#L125-L164)
+- [protocol.md:10-268](file://docs/gateway/protocol.md#L10-L268)
+- [schema.ts:1-19](file://src/gateway/protocol/schema.ts#L1-L19)
+- [protocol/index.ts:173-173](file://src/gateway/protocol/index.ts#L173-L173)
 
-### Configuration Management and Hot Reload
-The Gateway reads an optional JSON5 config from the default path and validates against a strict schema. It supports:
-- Interactive wizard, CLI, Control UI, and direct editing
-- Strict validation: unknown keys, malformed types, or invalid values prevent startup
-- Hot reload modes:
-  - hybrid (default): hot-apply safe changes, restart for critical changes
-  - hot: hot-apply only safe changes
-  - restart: restart on any change
-  - off: disable file watching
-- Programmatic config RPCs (config.apply, config.patch) with rate limiting and restart coalescing
+### Authentication and Device Identity
+- Auth enforcement: If configured, clients must supply matching token or device token
+- Device challenge-response: Clients must sign the server-provided nonce and include it during connect
+- Device tokens: Issued per device and role; can be rotated or revoked
+- Migration guidance: Clear error codes and recommended steps for legacy device auth behavior
 
-Operational commands:
-- openclaw gateway status, install, restart, stop, logs, doctor
-- Secrets reload and environment variable precedence
+```mermaid
+flowchart TD
+Start(["Connect"]) --> Challenge["Receive connect.challenge"]
+Challenge --> SignNonce["Sign nonce + device identity"]
+SignNonce --> SendConnect["Send connect with auth and device"]
+SendConnect --> AuthOK{"Auth OK?"}
+AuthOK --> |Yes| Hello["Receive hello-ok with protocol and policy"]
+AuthOK --> |No| Error["Close with error details"]
+```
+
+**Diagram sources**
+- [protocol.md:200-230](file://docs/gateway/protocol.md#L200-L230)
+- [protocol.md:231-256](file://docs/gateway/protocol.md#L231-L256)
 
 **Section sources**
-- [docs/gateway/configuration.md](file://docs/gateway/configuration.md#L1-L547)
-- [docs/gateway/index.md](file://docs/gateway/index.md#L94-L123)
+- [protocol.md:200-230](file://docs/gateway/protocol.md#L200-L230)
+- [protocol.md:231-256](file://docs/gateway/protocol.md#L231-L256)
 
-### Real-Time Communication Patterns
-The Gateway maintains:
-- Presence and system presence snapshots
-- Broadcast channels for events (agent, chat, presence, tick, health, heartbeat, shutdown)
-- Node subscription manager for targeted event delivery
-- Dedupe and chat run buffers for reliable delivery
-- Maintenance timers for periodic ticks, health refresh, and media cleanup
+### Presence Detection and Session Management
+- Presence: System-presence entries keyed by device identity; UIs can show a single row per device even when connecting with multiple roles
+- Sessions: Scoped per channel/peer/account; reset policies and idle/max age controls; thread binding for group chat
+- Heartbeat: Periodic agent turns with visibility controls, delivery routing, and optional reasoning delivery
+
+```mermaid
+flowchart TD
+A["Session Created/Resolved"] --> B["Bind to channel/peer/account"]
+B --> C{"Reset Policy?"}
+C --> |Idle/Max Age| D["Prune/Reset Session"]
+C --> |Active| E["Continue"]
+E --> F["Heartbeat Runs (optional)"]
+F --> G["Delivery Routing (last/target)"]
+```
+
+**Diagram sources**
+- [heartbeat.md:85-106](file://docs/gateway/heartbeat.md#L85-L106)
+- [configuration.md:208-234](file://docs/gateway/configuration.md#L208-L234)
+
+**Section sources**
+- [protocol.md:166-184](file://docs/gateway/protocol.md#L166-L184)
+- [heartbeat.md:85-106](file://docs/gateway/heartbeat.md#L85-L106)
+- [configuration.md:208-234](file://docs/gateway/configuration.md#L208-L234)
+
+### Health Monitoring and Heartbeat
+- Heartbeat cadence and targeting: per-agent/per-channel/per-account controls
+- Visibility: show/hide OK acknowledgments, alerts, and indicators
+- Delivery behavior: respects direct policy and session scoping
+- Cost awareness: isolated sessions and light context reduce token usage
+
+```mermaid
+flowchart TD
+HBStart["Tick"] --> CheckBusy{"Main Queue Busy?"}
+CheckBusy --> |Yes| Skip["Skip Heartbeat"]
+CheckBusy --> |No| Run["Run Heartbeat Turn"]
+Run --> Target{"Target Resolved?"}
+Target --> |None| Internal["Internal Update Only"]
+Target --> |Yes| Deliver["Deliver Message"]
+```
+
+**Diagram sources**
+- [heartbeat.md:242-256](file://docs/gateway/heartbeat.md#L242-L256)
+- [heartbeat.md:385-394](file://docs/gateway/heartbeat.md#L385-L394)
+
+**Section sources**
+- [heartbeat.md:85-106](file://docs/gateway/heartbeat.md#L85-L106)
+- [heartbeat.md:242-256](file://docs/gateway/heartbeat.md#L242-L256)
+- [heartbeat.md:385-394](file://docs/gateway/heartbeat.md#L385-L394)
+
+### Node Pairing and Approvals
+- Pending requests: created on pairing request; resolved on approve/reject/expiry
+- Approve flow: issues a fresh device token; nodes reconnect with token
+- Auto-approval: optional silent approval when conditions are met
+- Storage: pairing state under the Gateway state directory
+
+```mermaid
+sequenceDiagram
+participant N as "Node"
+participant G as "Gateway"
+N->>G : "node.pair.request"
+G-->>N : "node.pair.requested event"
+Note over G,N : "Operator approves/rejects"
+G-->>N : "node.pair.resolved event"
+N->>G : "Reconnect with device token"
+G-->>N : "connect accepted"
+```
+
+**Diagram sources**
+- [pairing.md:27-71](file://docs/gateway/pairing.md#L27-L71)
+- [pairing.md:95-100](file://docs/gateway/pairing.md#L95-L100)
+
+**Section sources**
+- [pairing.md:27-71](file://docs/gateway/pairing.md#L27-L71)
+- [pairing.md:95-100](file://docs/gateway/pairing.md#L95-L100)
+
+### Configuration and Secrets Management
+- Strict schema validation: unknown keys or invalid values prevent startup
+- Hot reload: hybrid mode applies safe changes instantly; restarts for critical changes
+- Environment variables and SecretRef: env, file, and exec providers for credentials
+- Config RPC: programmatic apply/patch with rate limiting and restart coalescing
+
+```mermaid
+flowchart TD
+Load["Load Config"] --> Validate{"Schema Valid?"}
+Validate --> |No| Block["Block Startup + Diagnostics"]
+Validate --> |Yes| Watch["Watch File + Hot Reload"]
+Watch --> Mode{"Reload Mode"}
+Mode --> |Hybrid| Safe["Apply Safe Changes"]
+Mode --> |Restart| Restart["Restart on Critical Changes"]
+```
+
+**Diagram sources**
+- [configuration.md:61-73](file://docs/gateway/configuration.md#L61-L73)
+- [configuration.md:436-475](file://docs/gateway/configuration.md#L436-L475)
+
+**Section sources**
+- [configuration.md:61-73](file://docs/gateway/configuration.md#L61-L73)
+- [configuration.md:436-475](file://docs/gateway/configuration.md#L436-L475)
+- [configuration.md:536-626](file://docs/gateway/configuration.md#L536-L626)
+
+### Remote Access and Security Policies
+- Remote access: Tailscale/VPN preferred; SSH tunnel fallback
+- Binding and auth: Loopback bind by default; non-loopback requires token/password
+- TLS and certificate pinning: optional TLS with fingerprint pinning
 
 ```mermaid
 graph LR
-A["Agent Events"] --> B["Agent Event Handler"]
-B --> C["Broadcast"]
-D["Node Subscriptions"] --> E["Node Registry"]
-C --> F["WebSocket Clients"]
-E --> F
-G["Maintenance Timers"] --> C
-G --> H["Health Snapshot"]
-G --> I["Media Cleanup"]
+Remote["Remote Client"] --> Tunnel["SSH Tunnel / Tailscale"]
+Tunnel --> Local["localhost:PORT"]
+Local --> WS["Gateway WS Endpoint"]
+WS --> CTRL["Control Plane"]
 ```
 
 **Diagram sources**
-- [src/gateway/server.impl.ts](file://src/gateway/server.impl.ts#L727-L740)
-- [src/gateway/server.impl.ts](file://src/gateway/server.impl.ts#L706-L725)
+- [index.md:108-123](file://docs/gateway/index.md#L108-L123)
+- [protocol.md:257-262](file://docs/gateway/protocol.md#L257-L262)
 
 **Section sources**
-- [src/gateway/server.impl.ts](file://src/gateway/server.impl.ts#L706-L740)
-
-### Security Policies
-- Auth policies: token/password/trusted-proxy/Tailscale with rate limiting
-- Device identity: challenge-response, nonce validation, signature verification, and device token issuance
-- Network security: bind host resolution, client IP resolution, secure WebSocket URL enforcement
-- Secrets management: runtime snapshot activation, warnings, degraded mode handling, and reload diagnostics
-
-**Section sources**
-- [src/gateway/auth.ts](file://src/gateway/auth.ts#L378-L485)
-- [src/gateway/net.ts](file://src/gateway/net.ts#L411-L456)
-- [src/gateway/server.impl.ts](file://src/gateway/server.impl.ts#L333-L397)
-
-### Clustering, Load Balancing, and High Availability
-- Multiple gateways on one host: use unique ports, config paths, state directories, and agent workspaces
-- Remote access: Tailscale/VPN preferred; SSH tunnel as fallback
-- Bind modes: loopback for local-only, LAN for multi-host, tailnet for Tailscale-only, auto for best-effort local
-- Discovery: Bonjour/mDNS and optional wide-area discovery; Tailscale exposure
-- Graceful restarts: SIGUSR1 policy, restart deferral checks, and coalesced restarts for config changes
-
-Operational guidance:
-- Prefer loopback bind for single-host setups
-- Use tailnet or LAN bind modes for multi-host deployments
-- Employ reverse proxies with trusted proxy headers for operator login
-- Monitor health and readiness via CLI commands
-
-**Section sources**
-- [docs/gateway/index.md](file://docs/gateway/index.md#L108-L190)
-- [src/gateway/net.ts](file://src/gateway/net.ts#L220-L271)
-- [src/gateway/server.impl.ts](file://src/gateway/server.impl.ts#L660-L673)
+- [index.md:108-123](file://docs/gateway/index.md#L108-L123)
+- [protocol.md:257-262](file://docs/gateway/protocol.md#L257-L262)
 
 ## Dependency Analysis
-The Gateway composes subsystems through a layered design:
-- server.ts exports the public API for starting the server
-- server.impl.ts orchestrates configuration, secrets, plugins, channels, HTTP/WS servers, and runtime state
-- auth.ts and net.ts provide cross-cutting concerns for authentication and network security
-- protocol/schema.ts and protocol/schema/frames.ts define the typed protocol surface
+The protocol layer exports schema definitions and validation helpers used across the Gateway. The validators compile TypeBox schemas into AJV validators for runtime checks.
 
 ```mermaid
 graph TB
-S["server.ts"] --> SI["server.impl.ts"]
-SI --> AU["auth.ts"]
-SI --> NE["net.ts"]
-SI --> PS["protocol/schema.ts"]
-PS --> PF["protocol/schema/frames.ts"]
-SI --> CH["Channel Manager"]
-SI --> PL["Plugins/Methods"]
-SI --> HT["HTTP Servers"]
-SI --> WS["WebSocket Server"]
+SCHEMA["schema.ts<br/>Exports: agent, agents-models-skills, channels, config, cron, error-codes, devices, frames, logs-chat, nodes, protocol-schemas, push, secrets, sessions, snapshot, types, wizard"]
+VALID["protocol/index.ts<br/>AJV validators + formatValidationErrors"]
+SCHEMA --> VALID
 ```
 
 **Diagram sources**
-- [src/gateway/server.ts](file://src/gateway/server.ts#L1-L4)
-- [src/gateway/server.impl.ts](file://src/gateway/server.impl.ts#L1-L120)
-- [src/gateway/auth.ts](file://src/gateway/auth.ts#L1-L120)
-- [src/gateway/net.ts](file://src/gateway/net.ts#L1-L60)
-- [src/gateway/protocol/schema.ts](file://src/gateway/protocol/schema.ts#L1-L19)
-- [src/gateway/protocol/schema/frames.ts](file://src/gateway/protocol/schema/frames.ts#L1-L60)
+- [schema.ts:1-19](file://src/gateway/protocol/schema.ts#L1-L19)
+- [protocol/index.ts:1-673](file://src/gateway/protocol/index.ts#L1-L673)
 
 **Section sources**
-- [src/gateway/server.ts](file://src/gateway/server.ts#L1-L4)
-- [src/gateway/server.impl.ts](file://src/gateway/server.impl.ts#L1-L120)
+- [schema.ts:1-19](file://src/gateway/protocol/schema.ts#L1-L19)
+- [protocol/index.ts:253-458](file://src/gateway/protocol/index.ts#L253-L458)
 
 ## Performance Considerations
-- Hot reload: hybrid mode balances safety and convenience; critical changes trigger restarts
-- Concurrency: lane concurrency applied at startup; maintenance timers batch periodic tasks
-- Media cleanup: TTL-based cleanup for transient media with bounds checking
-- Diagnostics: optional diagnostic heartbeat for observability
-- Rate limiting: auth attempts are rate-limited to mitigate brute-force and abuse
+- Concurrency: Single-port multiplexing reduces overhead; WebSocket multiplexing with typed frames minimizes parsing costs
+- Heartbeat tuning: Use isolated sessions and light context to reduce token usage; adjust cadence and active hours
+- Config hot reload: Hybrid mode balances safety and speed; avoid frequent critical changes
+- TLS and pinning: Optional TLS adds CPU overhead; pinning improves trust but requires certificate management
 
 [No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
-Common failure signatures and remedies:
-- Refusing to bind without auth: ensure token/password configured for non-loopback binds
-- Port conflicts: another gateway instance already listening; adjust port or force restart
-- Config set to remote mode: set gateway.mode=local or configure appropriate auth
-- Unauthorized during connect: mismatch between client auth and gateway configuration
+Common failure signatures and remediation:
+- Refusing to bind without auth: Ensure loopback bind or configure token/password
+- Port conflicts: Another gateway instance is listening; free the port or change gateway.port
+- Config set to remote mode: Set gateway.mode=local to allow local binds
+- Unauthorized during connect: Auth mismatch; verify token/device token and device challenge-response
 
 Operational checks:
-- Liveness: open WS and send connect; expect hello-ok snapshot
-- Readiness: use CLI status and channel health probes
-- Gap recovery: refresh health/system-presence on sequence gaps
+- Liveness: Open WS and send connect; expect hello-ok snapshot
+- Readiness: Use status and channel probes
+- Gap recovery: Refresh state on sequence gaps before continuing
 
 **Section sources**
-- [docs/gateway/index.md](file://docs/gateway/index.md#L235-L244)
-- [docs/gateway/index.md](file://docs/gateway/index.md#L216-L234)
+- [index.md:216-244](file://docs/gateway/index.md#L216-L244)
 
 ## Conclusion
-The Gateway System is the central control plane for OpenClaw, providing a unified WebSocket/HTTP interface for operators and nodes, robust authentication and authorization, and a typed protocol for sessions, channels, tools, and events. Its modular runtime integrates plugins, channels, cron, discovery, and maintenance timers, while supporting secure binding modes, trusted proxies, and Tailscale exposure. The configuration system enforces strict schema validation and supports hot reload, and the operational runbooks provide practical guidance for startup, supervision, and troubleshooting.
+The Gateway provides a robust, protocol-driven control plane for OpenClaw. Its WebSocket-first architecture, strict schema validation, and comprehensive operational tooling enable reliable orchestration of clients, nodes, and channels. Proper configuration, authentication, and monitoring ensure secure and scalable deployments.
 
 [No sources needed since this section summarizes without analyzing specific files]
 
 ## Appendices
 
-### Gateway Protocol Quick Reference (Operator View)
+### Protocol Quick Reference (Operator View)
 - First client frame must be connect
-- Gateway returns hello-ok with snapshot, protocol version, and policy
+- Gateway returns hello-ok snapshot (presence, health, stateVersion, uptimeMs, limits/policy)
 - Requests: req(method, params) → res(ok/payload|error)
 - Common events: connect.challenge, agent, chat, presence, tick, health, heartbeat, shutdown
 
 **Section sources**
-- [docs/gateway/index.md](file://docs/gateway/index.md#L202-L214)
+- [index.md:202-214](file://docs/gateway/index.md#L202-L214)
 
-### Authentication Quick Reference
-- Token-based auth: OPENCLAW_GATEWAY_TOKEN or gateway.auth.token
-- Password-based auth: OPENCLAW_GATEWAY_PASSWORD or gateway.auth.password
-- Trusted proxy: requires trustedProxy config and headers
-- Tailscale: loopback/Tailnet header auth for WS Control UI
+### Configuration Reference Highlights
+- Strict validation prevents startup with unknown keys or invalid values
+- Hot reload modes: hybrid (default), hot, restart, off
+- Environment variables and SecretRef support for credentials
+- Config RPC with rate limiting and restart coalescing
 
 **Section sources**
-- [docs/gateway/authentication.md](file://docs/gateway/authentication.md#L21-L120)
-- [src/gateway/auth.ts](file://src/gateway/auth.ts#L217-L292)
+- [configuration.md:61-73](file://docs/gateway/configuration.md#L61-L73)
+- [configuration.md:436-475](file://docs/gateway/configuration.md#L436-L475)
+- [configuration.md:536-626](file://docs/gateway/configuration.md#L536-L626)
